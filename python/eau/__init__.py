@@ -1,2 +1,2 @@
-from eau.Plotter import Plotter
-from eau.UtilityFunctions import *
+from .Plotter import *
+from .UtilityFunctions import *

@@ -1,7 +1,7 @@
 import os
 import os.path
-import queue
-import threading
+import multiprocessing
+from queue import Empty
 
 from .Driver import Driver
 from .ProcessLogger import ProcessLogger
@@ -18,52 +18,45 @@ class DriverData:
         return self.__drivers
 
     # Loads the data from the files for all drivers
-    def loadData( self, numberOfThreads ):
+    def loadData( self, numberOfThreads = 3 ):
         self.__drivers = []
+
+        ctx = multiprocessing.get_context('fork')
         
         # Put the driver directories in a queue
-        driversInQueue = queue.Queue()
+        driversInQueue = ctx.Queue()
         driverdirs = os.listdir( self.__dir )
         for driverdir in driverdirs:
             driverId = int(driverdir)
             driver = Driver( driverId )
             driversInQueue.put( driver )
 
-        # Define a read thread
-        class readThread( threading.Thread ):
-            def __init__(self, inputQueue, outputQueue, driversdir, log ):
-                threading.Thread.__init__( self )
-                self.__in = inputQueue
-                self.__out = outputQueue
-                self.__driversDir = driversdir
-                self.__log = log
-                return
-            def run( self ):
-                while True:
-                    try:
-                        driver = self.__in.get_nowait()
-                        driver.readTripsFromDirectory( os.path.join( self.__driversDir, str(driver.id() ) ) )
-                        self.__out.put( driver )
-                        self.__log.taskEnded()
-                    except queue.Empty:
-                        break
-                return
+        # The thread reading function
+        def readDataFunction( inputQueue, outputQueue, driverTopDir ):
+            while True:
+                try:
+                    driver = inputQueue.get_nowait()
+                    driver.readTripsFromDirectory( os.path.join( driverTopDir, str(driver.id() ) ) )
+                    outputQueue.put( driver )
+                except:
+                    break
+            return
 
         # Start the reading threads
         threads = []
-        driversOutQueue = queue.Queue()
+        driversOutQueue = ctx.Queue()
 
-        log = ProcessLogger( driversInQueue.qsize() )
         for i in range( numberOfThreads):
-            thread = readThread( driversInQueue, driversOutQueue, self.__dir, log )
+            thread = ctx.Process( target = readDataFunction, args = (driversInQueue, driversOutQueue, self.__dir ) )
             thread.start()
             threads.append( thread )
 
-        for t in threads: t.join()
-
-        # Move the drivers data from the output queue to the list
-        while not driversOutQueue.empty():
+        log = ProcessLogger( len(driverdirs) )
+        for i in range( len(driverdirs) ):
             self.__drivers.append( driversOutQueue.get() )
+            log.taskEnded()
+
+        for t in threads: t.join()
 
         return
         

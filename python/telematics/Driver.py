@@ -1,4 +1,3 @@
-import threading
 import os
 import os.path
 from .Trip import Trip
@@ -8,12 +7,10 @@ class Driver:
     def __init__( self, driverId ):
         self.__id = driverId
         self.__trips = {}
-        self.__lock = threading.Lock()
         return
 
     def __del__( self ):
         self.__clearTrips()
-        del self.__lock
         return
 
     def id( self ):
@@ -27,7 +24,6 @@ class Driver:
         self.__trips = {}
 
     def readTripsFromDirectory( self, directoryName ):
-        self.__lock.acquire()        
         self.__clearTrips()
         tripFiles = os.listdir( directoryName )
         for tripFile in tripFiles:
@@ -36,7 +32,6 @@ class Driver:
             trip = Trip( tripId )
             trip.readFromCSV( fileName )
             self.__trips[tripId] = trip
-        self.__lock.release()
         return
 
     def numberOfTrips( self ):
