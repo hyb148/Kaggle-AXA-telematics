@@ -18,7 +18,7 @@ class DriverData:
         return self.__drivers
 
     # Loads the data from the files for all drivers
-    def loadData( self, numberOfThreads = 3 ):
+    def loadData( self, numberOfThreads = 4 ):
         self.__drivers = []
 
         ctx = multiprocessing.get_context('fork')
@@ -26,20 +26,20 @@ class DriverData:
         # Put the driver directories in a queue
         driversInQueue = ctx.Queue()
         driverdirs = os.listdir( self.__dir )
+        numberOfDriversToProcess = 0
         for driverdir in driverdirs:
             driverId = int(driverdir)
             driver = Driver( driverId )
             driversInQueue.put( driver )
+            numberOfDriversToProcess += 1
+            if numberOfDriversToProcess == 200: break
 
         # The thread reading function
         def readDataFunction( inputQueue, outputQueue, driverTopDir ):
             while True:
-                try:
-                    driver = inputQueue.get_nowait()
-                    driver.readTripsFromDirectory( os.path.join( driverTopDir, str(driver.id() ) ) )
-                    outputQueue.put( driver )
-                except:
-                    break
+                driver = inputQueue.get()
+                driver.readTripsFromDirectory( os.path.join( driverTopDir, str(driver.id() ) ) )
+                outputQueue.put( driver )
             return
 
         # Start the reading threads
@@ -51,12 +51,13 @@ class DriverData:
             thread.start()
             threads.append( thread )
 
-        log = ProcessLogger( len(driverdirs) )
-        for i in range( len(driverdirs) ):
+        log = ProcessLogger( numberOfDriversToProcess )
+        for i in range( numberOfDriversToProcess ):
             self.__drivers.append( driversOutQueue.get() )
             log.taskEnded()
 
-        for t in threads: t.join()
+        for t in threads:
+            t.terminate()
 
         return
         
