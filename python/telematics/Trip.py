@@ -5,10 +5,18 @@ from .Segment import Segment
 class Trip:
     
     # Constructor
-    def __init__( self ):
+    def __init__( self, tripId ):
         self.__rawData = []
         self.__segments = []
+        self.__id = tripId
         return
+
+    def __del__( self ):
+        return
+
+    # Returns the trip id
+    def id( self ):
+        return self.__id
     
     # Reading the input from a CSV file
     def readFromCSV( self, fileName ):
@@ -28,6 +36,10 @@ class Trip:
     # The trip segments
     def segments( self ):
         return self.__segments
+
+    # Returns the number of segments
+    def numberOfSegments( self ):
+        return len(self.__segments)
 
     # The total distance traveled, derived from the segments
     def distanceTraveled( self ):
@@ -94,8 +106,9 @@ class Trip:
         else:
             return numpy.percentile(angularValues,[5,25,50,75,95])
         
+    # Fourier transformation of speed
 
-    # Fourier transformation of some quantity (velocity, angle)
+    # Fourier transformation of angles
 
     # Private function that generates the trip segments
     def __generateSegments(self):

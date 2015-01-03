@@ -1,4 +1,5 @@
 import numpy
+import scipy.fftpack
 
 # Segment class
 class Segment:
@@ -53,3 +54,14 @@ class Segment:
                 angles[i] = numpy.pi - theta
         return angles
             
+    # Fourier transformation of speed values
+    def speedFFT( self ):
+        sf = numpy.abs( scipy.fftpack.fft( self.speedValues() ) )
+        n = int( numpy.around(0.1 + len(sf) / 2.0) )
+        return sf[0:n]
+
+    # Fourier transformation of anglular values
+    def angleFFT( self ):
+        af = numpy.abs( scipy.fftpack.fft( self.angularValues() ) )
+        n = int( numpy.around(0.1 + len(af) / 2.0) )
+        return af[0:n]
