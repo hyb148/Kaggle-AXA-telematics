@@ -18,19 +18,23 @@ class Plotter:
         plt.show(block=False)
         return
 
-    def timeSeries( self, data ):
+    def timeSeries( self, data, asline = True ):
         x = np.arange(0,len(data))
         plt.figure( self.__fig )
         plt.clf()
-        plt.plot(x,data, 'g--' )
+        if asline:
+            plt.plot(x,data, 'g--' )
+        else:
+            plt.bar(x,data)
         plt.draw()
         plt.show(block=False)
         return
 
-    def histogram( self, data, bins=50 ):
+    def histogram( self, data, bins=50, same=False ):
         plt.figure( self.__fig )
-        plt.clf()
-        plt.hist(data, bins, normed=1, facecolor='g', alpha=0.85 )
+        if not same:
+            plt.clf()
+        plt.hist(data, bins, normed=1, alpha=0.80 )            
         plt.draw()
         plt.show(block=False)
         return
