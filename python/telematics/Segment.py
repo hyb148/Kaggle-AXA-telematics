@@ -4,16 +4,12 @@ import scipy.fftpack
 # Segment class
 class Segment:
     def __init__(self, coordinates ):
-        self.__data = coordinates
         self.__v = numpy.diff( coordinates, axis=0)
         return
 
-    def rawData(self):
-        return self.__data
-
-    # The time duration of the trip
+    # The time duration of the segment
     def duration( self ):
-        return len( self.__data ) - 1
+        return len( self.__v )
     
     # The distance (and speed) vector
     def speedValues( self ):
