@@ -18,6 +18,8 @@ int main( int, char**) {
         for (std::list<std::string>::const_iterator i = drivers.begin();
              i != drivers.end(); ++i ) {
             
+            std::cout << "Reading driver " << *i << std::endl;
+            
             listing.setWorkingDirectory( "drivers/" + *i );
             std::list<std::string> tripFiles = listing.directoryContent();
             
