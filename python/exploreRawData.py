@@ -40,33 +40,23 @@ def findMissingData( tripData ):
             v_next = numpy.sqrt( v_next[0]**2 + v_next[1]**2 )
             if ( numpy.abs( v_current - v_next ) > maxAcceleration ):  # We may need to relax this in order to allow for smaller decceleration
                 averageSpeed = 0.5 * (v_previous + v_next)
-                if averageSpeed == 0:
+                if averageSpeed == 0:  # This is actually a jitter
                     jitterPoints.append( [ i, 0.5*(p_next+p_previous) ] ) # We can do better taking into account the previous speeds
                     v_previous = 0.5*(p_next - p_previous)
                     v_previous = numpy.sqrt( v_previous[0]**2 + v_previous[1]**2 )
                     p_previous = p_next
                     i += 2
                     continue
-                    
                 
-                secondsInGap = int( numpy.floor( v_current / averageSpeed ) )
+                secondsInGap = int( numpy.floor( 0.5 + v_current / averageSpeed) )
                 if secondsInGap > jitterTolerance:  # This is a gap
-                    numberOfMiniSegments = secondsInGap + 1
-                    speedIncrement = (v_next - v_previous)/ numberOfMiniSegments
-                    directionVector = p_next - p_previous
-                    directionVector /= numpy.sqrt( directionVector[0]**2 + directionVector[1]**2 )
-                    dataPoints = numpy.array([]).reshape([0,2])
-                    pp_point = p_previous
-                    for s in range(secondsInGap):
-                        speedInGap = v_previous + (s+1) * speedIncrement
-                        newPoint = pp_point + speedInGap * directionVector
-                        pp_point = newPoint
-                        dataPoints = numpy.vstack( (dataPoints, newPoint) )
-                    missingData.append([i, dataPoints])
-
-                    v_previous = v_next - speedIncrement
-                    p_previous = dataPoints[len(dataPoints)-1]
-                    i += 1
+                    
+                    missingData.append( (i, secondsInGap, v_current ) )
+                    i += 3
+                    if i < len(tripData):
+                        p_previous = tripData[i-1]
+                        v_previous = tripData[i-1] - tripData[i-2]
+                        v_previous = numpy.sqrt( v_previous[0]**2 + v_previous[1]**2 )
                     continue
                 else:  # This is a jitter. Need to correct  the values
                     jitterPoints.append( [ i, 0.5*(p_next+p_previous) ] ) # We can do better taking into account the previous speeds
@@ -81,21 +71,27 @@ def findMissingData( tripData ):
         v_previous = v_current
         i += 1
 
-    _tripData = tripData
-    correctedTripData = numpy.array([]).reshape([0,2])
+    correctedTripData = tripData
     for jitterPoint in jitterPoints:
-        _tripData[ jitterPoint[0] ] = jitterPoint[1]
+        correctedTripData[ jitterPoint[0] ] = jitterPoint[1]
+
+    if len(missingData) == 0:
+        return ([correctedTripData,],len(jitterPoints))
+
+    segments = []
     i = 0
     for gap in missingData:
-        while i < gap[0]:
-            correctedTripData = numpy.vstack( ( correctedTripData, _tripData[i] ) )
-            i += 1
-        correctedTripData = numpy.vstack( ( correctedTripData, gap[1] ) )
-    while i < len(tripData ):
-        correctedTripData = numpy.vstack( ( correctedTripData, _tripData[i] ) )
-        i += 1
+        newSeg = correctedTripData[i : gap[0] - 1 ]
+        if len(newSeg) > 2:
+            segments.append( newSeg )
+        i = gap[0] + 1
+        
 
-    return ( correctedTripData, len(missingData), len(jitterPoints) )
+    newSeg = correctedTripData[i : ]
+    if len(newSeg) > 2:
+        segments.append( newSeg )
+
+    return ( segments, len(jitterPoints) )
 
 
 # Function to apply the removal of the zero speed segments
@@ -209,7 +205,7 @@ plt.get_current_fig_manager().set_window_title("Corrected Data Pass 2")
 # Looping over the trips
 for trip in trips:
     tripId = trip[0]
-#    if tripId != 103: continue
+    if tripId != 150: continue
     print( "Processing trip " + str(tripId) )
     tripData = trip[1]
 
@@ -229,18 +225,23 @@ for trip in trips:
     
 
     # First pass of corrections (gaps and speed jitters)
-    tripData, nGaps, nJitterPoints = findMissingData( tripData )
+    segments, nJitterPoints = findMissingData( tripData )
 
     # Plot the corrected data
-    plotSegmentData( fig2, [tripData,] )
-    atext = "Gaps : " + str(nGaps)
+    plotSegmentData( fig2, segments )
+    atext = "Gaps : " + str(len(segments)-1)
     fig2.text(0.05, 0.97, atext, horizontalalignment='left')
     atext = "Number of jitter points : " + str(nJitterPoints)
     fig2.text(0.05, 0.94, atext, horizontalalignment='left')
     plt.draw()
 
     # Second pass of corrections (removing zero speed segments)
-    segments = removeZeroSpeedSegments( tripData )
+    newSegments = []
+    for segment in segments:
+        segs = removeZeroSpeedSegments( segment )
+        for seg in segs: newSegments.append(seg)
+    segments = newSegments
+    
     fig=plt.figure(fig3.number)
     plotSegmentData( fig3, segments )
     atext = "Segments : " + str(len(segments))
