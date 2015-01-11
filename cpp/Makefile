@@ -31,16 +31,9 @@ bin/% : src/applications/%.cpp
 	clang++ -std=c++11 -stdlib=libc++ $(INCLUDE) -o$@ -L./lib -l$(LIBNAME) $<
 
 
-.PHONY : readFromCSV
-readFromCSV : bin/$(APP_READFROMCSV)
-
 .PHONY : clean
 clean :
 	@rm -f $(OBJECTS)
 	@rm -f $(LIBFILE)
 	@rm -f *~
 	@rm -f bin/*
-
-.PHONY : run
-run : bin/readFromCSV
-	@$<

@@ -1,44 +1,33 @@
 #include <iostream>
+#include <sstream>
 #include <exception>
 
-#include "Trip.h"
+#include "DriverTripDataIO.h"
 #include "DirectoryListing.h"
+#include "ProcessLogger.h"
 
 int main( int, char**) {
     try {
-        std::cout << "Starting ... " << std::endl;
+        std::string driverCSVDir = "drivers";
+        std::string driverCompressedDir = "drivers_compressed_data";
         
-        std::vector< Trip* > trips;
+        DirectoryListing dirList( driverCSVDir );
+        std::list<std::string> driverDirs = dirList.directoryContent();
         
-        DirectoryListing listing;
-        listing.setWorkingDirectory("drivers");
-        std::list<std::string> drivers = listing.directoryContent();
+        ProcessLogger log( driverDirs.size() );
         
-        // Looping over the drivers
-        for (std::list<std::string>::const_iterator i = drivers.begin();
-             i != drivers.end(); ++i ) {
+        for ( std::list<std::string>::const_iterator iDriverDir = driverDirs.begin();
+             iDriverDir != driverDirs.end(); ++iDriverDir ) {
             
-            std::cout << "Reading driver " << *i << std::endl;
+            int driverId = 0;
+            std::istringstream isId( *iDriverDir );
+            isId >> driverId;
             
-            listing.setWorkingDirectory( "drivers/" + *i );
-            std::list<std::string> tripFiles = listing.directoryContent();
+            DriverTripDataIO dataIO( driverId );
+            dataIO.readTripDataFromCSVFiles( driverCSVDir ).writeDataToBinaryFile( driverCompressedDir );
             
-            // Looping over the trip files
-            for (std::list<std::string>::const_iterator t = tripFiles.begin();
-                 t != tripFiles.end(); ++t ) {
-                
-                Trip* trip = new Trip();
-                unsigned long nPoints = trip->readFromCSV( "drivers/" + *i + "/" + *t );
-                
-                trips.push_back( trip );
-            }
-            
+            log.taskEnded();
         }
-
-        std::cout << trips.size() << " trips loaded!" << std::endl;
-
-        for (std::vector<Trip*>::iterator iTrip = trips.begin(); iTrip != trips.end(); ++iTrip )
-            delete *iTrip;
         
     }
     catch (std::exception& e) {
