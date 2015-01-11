@@ -40,6 +40,15 @@ def findMissingData( tripData ):
             v_next = numpy.sqrt( v_next[0]**2 + v_next[1]**2 )
             if ( numpy.abs( v_current - v_next ) > maxAcceleration ):  # We may need to relax this in order to allow for smaller decceleration
                 averageSpeed = 0.5 * (v_previous + v_next)
+                if averageSpeed == 0:
+                    jitterPoints.append( [ i, 0.5*(p_next+p_previous) ] ) # We can do better taking into account the previous speeds
+                    v_previous = 0.5*(p_next - p_previous)
+                    v_previous = numpy.sqrt( v_previous[0]**2 + v_previous[1]**2 )
+                    p_previous = p_next
+                    i += 2
+                    continue
+                    
+                
                 secondsInGap = int( numpy.floor( v_current / averageSpeed ) )
                 if secondsInGap > jitterTolerance:  # This is a gap
                     numberOfMiniSegments = secondsInGap + 1
@@ -61,7 +70,6 @@ def findMissingData( tripData ):
                     continue
                 else:  # This is a jitter. Need to correct  the values
                     jitterPoints.append( [ i, 0.5*(p_next+p_previous) ] ) # We can do better taking into account the previous speeds
-                    
                     v_previous = 0.5*(p_next - p_previous)
                     v_previous = numpy.sqrt( v_previous[0]**2 + v_previous[1]**2 )
                     p_previous = p_next
@@ -92,24 +100,64 @@ def findMissingData( tripData ):
 
 # Function to apply the removal of the zero speed segments
 def removeZeroSpeedSegments( tripData ):
+    zeroSpeedTolerance = 1.5
 
-    return (tripData, 0)
+    segments=[]
+    segentStartingIndex = 0
+    zeroSpeedCounter = 0
+    p_previous = tripData[0]
+    for i in range(1,len(tripData)):
+        p_current = tripData[i]
+        v_current = p_current - p_previous
+        v_current = numpy.sqrt(v_current[0]**2 + v_current[1]**2)
+        
+        if v_current < zeroSpeedTolerance:
+            if zeroSpeedCounter == 0 : # Mark the end of a segment and beginning of a zero speed sequence
+                if i - segentStartingIndex > 1:
+                    segments.append( tripData[ segentStartingIndex : i] )
+            zeroSpeedCounter += 1
+            segentStartingIndex = i
+        else:
+            zeroSpeedCounter = 0
+                
+        p_previous = p_current
+        
+    if len(tripData) - segentStartingIndex > 1:
+        segments.append( tripData[segentStartingIndex : len(tripData)] )
 
+    return segments
 
-# Function for plotting the data
-def plotData( fig, tripData ):
-    speedVectors = numpy.diff( tripData, axis = 0 )
-    speedValues = 3.6 * numpy.apply_along_axis( lambda x: numpy.sqrt( x[0]**2+x[1]**2), 1, speedVectors )
-    accelerationValues = numpy.diff( speedValues ) / 3.6
-    angles = numpy.zeros( len(speedVectors) - 1 )
-    for i in range(len(angles)):
-        v1 = speedVectors[i]
-        v2 = speedVectors[i+1]
-        angles[i] = eau.angleOfVectors(v1,v2) * 180 / numpy.pi
+    
 
-    # Draw the raw data
+# Function for plotting the raw data of the segments
+def plotSegmentData( fig, segments ):
+
+    # Clear the figure
     fig = plt.figure( fig.number )
     plt.clf()
+
+    tripData = numpy.array([]).reshape([0,2])
+    tAngles = numpy.array([])
+    tSpeed = numpy.array([])
+    tAcceleration = numpy.array([])
+    
+    for segment in segments:
+        speedVectors = numpy.diff( segment, axis = 0 )
+        speedValues = 3.6 * numpy.apply_along_axis( lambda x: numpy.sqrt( x[0]**2+x[1]**2), 1, speedVectors )
+        if len(speedValues) > 1:
+            accelerationValues = numpy.diff( speedValues ) / 3.6
+            angles = numpy.zeros( len(speedVectors) - 1 )
+            for i in range(len(angles)):
+                v1 = speedVectors[i]
+                v2 = speedVectors[i+1]
+                angles[i] = eau.angleOfVectors(v1,v2) * 180 / numpy.pi
+            tAngles = numpy.hstack( (tAngles, angles) )
+            tAcceleration = numpy.hstack( (tAcceleration, accelerationValues) )
+
+        tSpeed = numpy.hstack( (tSpeed, speedValues) )
+        tripData = numpy.vstack( (tripData, segment) )
+
+    # Draw the raw data
     ax = fig.add_subplot(321)
     ax.plot( tripData[0:,0], tripData[0:,1], 'r.', alpha = 0.05 )
     ax.grid(True)
@@ -120,20 +168,20 @@ def plotData( fig, tripData ):
     ax.plot( tripData[0:,0], numpy.arange(0,len(tripData)), 'b.', alpha = 0.05 )
     ax.grid(True)
     ax = fig.add_subplot(324)
-    ax.plot( numpy.arange(0,len(angles)), angles, 'r-' )
+    ax.plot( numpy.arange(0,len(tAngles)), tAngles, 'r-' )
+    ax.plot( numpy.arange(0,len(tAngles)), tAngles, 'r.' )
     ax.grid(True)
     ax = fig.add_subplot(325)
-    ax.plot( numpy.arange(0,len(speedValues)), speedValues, 'g-' )
-    ax.plot( numpy.arange(0,len(speedValues)), speedValues, 'g.', alpha=0.15 )
+    ax.plot( numpy.arange(0,len(tSpeed)), tSpeed, 'g-' )
+    ax.plot( numpy.arange(0,len(tSpeed)), tSpeed, 'g.', alpha=0.15 )
     ax.grid(True)
     ax = fig.add_subplot(326)
-    ax.plot( numpy.arange(0,len(accelerationValues)), accelerationValues, 'b-' )
-    ax.plot( numpy.arange(0,len(accelerationValues)), accelerationValues, 'b.', alpha=0.15 )
+    ax.plot( numpy.arange(0,len(tAcceleration)), tAcceleration, 'b-' )
+    ax.plot( numpy.arange(0,len(tAcceleration)), tAcceleration, 'b.', alpha=0.15 )
     ax.grid(True)
 
-    return len(tripData)
+    return
     
-
 
 
 
@@ -166,21 +214,25 @@ for trip in trips:
     tripData = trip[1]
 
     # Plot the original raw data
-    nPoints = plotData( fig1, tripData )
+    plotSegmentData( fig1, [tripData,] )
 
     atext = "Driver " + str(driverId) + "  -  Trip " + str(tripId)
     fig1.text(0.05, 0.97, atext, horizontalalignment='left')
-    m,s = divmod(nPoints-1,60)
+    m,s = divmod(len(tripData)-1,60)
     h,m = divmod(m,60)
     atext = "Duration: " + str("%dh %02dm %02ds"%(h,m,s))
     fig1.text(0.05, 0.94, atext, horizontalalignment='left')
     plt.draw()
 
+
+    # Suppress low speed segments
+    
+
     # First pass of corrections (gaps and speed jitters)
     tripData, nGaps, nJitterPoints = findMissingData( tripData )
 
     # Plot the corrected data
-    plotData( fig2, tripData )
+    plotSegmentData( fig2, [tripData,] )
     atext = "Gaps : " + str(nGaps)
     fig2.text(0.05, 0.97, atext, horizontalalignment='left')
     atext = "Number of jitter points : " + str(nJitterPoints)
@@ -188,11 +240,12 @@ for trip in trips:
     plt.draw()
 
     # Second pass of corrections (removing zero speed segments)
-    tripData, nZeroSpeedPoints = removeZeroSpeedSegments( tripData )
+    segments = removeZeroSpeedSegments( tripData )
     fig=plt.figure(fig3.number)
-    plotData( fig3, tripData )    
+    plotSegmentData( fig3, segments )
+    atext = "Segments : " + str(len(segments))
+    fig3.text(0.05, 0.97, atext, horizontalalignment='left')    
     plt.draw()
-    
 
     # Show all the windows
     plt.show(block=False)
