@@ -35,5 +35,5 @@ bin/% : src/applications/%.cpp
 clean :
 	@rm -f $(OBJECTS)
 	@rm -f $(LIBFILE)
-	@rm -f *~
+	@rm -f *~ src/applications/*~ src/library/*/*~
 	@rm -f bin/*
