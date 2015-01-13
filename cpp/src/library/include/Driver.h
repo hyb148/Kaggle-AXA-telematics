@@ -18,6 +18,13 @@ public:
     // Creates trip objects from data
     Driver& loadTripData( const std::vector< std::pair< int, std::vector< std::pair<float,float> > > >& tripData );
     
+    // Returns the trip objects
+    inline const std::vector< Trip >& trips() const { return m_trips; }
+    
+    // Operator for searching in a vector
+    inline bool operator==( const Driver& rhs ) const { return this->id() == rhs.id(); }
+    inline bool operator==( int rhs ) const { return this->id() == rhs; }
+    
 private:
     // The trip id
     int m_driverId;

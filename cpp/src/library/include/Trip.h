@@ -32,6 +32,16 @@ public:
     
     // Returns the number of segments
     long numberOfSegments() const;
+    
+    // Returns the raw data
+    inline const std::vector< std::pair< float, float > >& rawData() const { return m_rawData; }
+    
+    // Returns the segments
+    const std::vector< Segment* >& segments() const;
+    
+    // Operator for searching in a vector
+    inline bool operator==( const Trip& rhs ) const { return this->id() == rhs.id(); }
+    inline bool operator==( int rhs ) const { return this->id() == rhs; }
 
 private:
     // The trip id
@@ -58,11 +68,16 @@ private: // Private methods
     Trip& generateSegments();
     
     // Identifies the gaps and corrects the jitter generating segment data
-    std::vector< std::vector< std::pair< float, float > > > identifyGapsCorrectJitter();
+    const Trip& identifyGapsCorrectJitter( std::vector< std::pair< float, float > >& rawData,
+                                           std::vector< std::vector< std::pair< float, float > > >& segments );
     
     // Removes the zero speed segments
     const Trip& removeZeroSpeedSegments( const std::vector< std::pair< float, float > >& tripData,
-                                        std::vector< std::vector< std::pair< float, float > > >& segments ) const;
+					 std::vector< std::vector< std::pair< float, float > > >& segments ) const;
+    
+    // Removes the segments with spurious angles
+    const Trip& removeAccuteAngleSegments( const std::vector< std::pair< float, float > >& tripData,
+					   std::vector< std::vector< std::pair< float, float > > >& segments ) const;
 };
 
 #endif

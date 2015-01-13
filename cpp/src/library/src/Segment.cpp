@@ -19,6 +19,22 @@ Segment::~Segment()
 
 
 
+std::vector< std::pair<float,float> >
+Segment::dataPoints() const
+{
+    std::vector< std::pair<float,float> > dataPoints;
+    dataPoints.reserve( m_velocityVectors.size() + 1 );
+    
+    dataPoints.push_back(m_origin);
+    for ( std::vector< std::pair<float,float> >::const_iterator iVector = m_velocityVectors.begin();
+         iVector != m_velocityVectors.end(); ++iVector ) {
+        const std::pair<float,float>& previous = dataPoints.back();
+        dataPoints.push_back(std::make_pair( previous.first + iVector->first, previous.second + iVector->second ));
+    }
+    return dataPoints;
+}
+
+
 std::vector<double>
 Segment::speedValues() const
 {
@@ -37,7 +53,7 @@ Segment::speedValues() const
 std::vector<double>
 Segment::angularValues() const
 {
-    double pi = std::atan( 1.0 ) * 4;
+    const double pi = std::atan( 1.0 ) * 4;
     
     size_t numberOfVectors = m_velocityVectors.size();
     std::vector<double> angularValues( numberOfVectors - 1, 0 );
@@ -56,10 +72,16 @@ Segment::angularValues() const
         if ( sint < -1 ) sint = -1;
         if (cost >= 0  )
             angularValues[i] = std::asin( sint );
-        else
-            angularValues[i] = pi - std::asin( sint );
+        else {
+	    if (sint > 0 )
+		angularValues[i] = pi - std::asin( sint );
+	    else {
+		if ( cost > 1 ) cost = 1;
+		if ( cost < -1 ) cost = -1;
+		angularValues[i] = - std::acos( cost );
+	    }
+	}
     }
-   
     
     return angularValues;
 }

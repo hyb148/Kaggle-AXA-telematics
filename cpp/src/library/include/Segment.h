@@ -24,6 +24,9 @@ public:
     // The time duration
     long travelDuration() const;
     
+    // The data points
+    std::vector< std::pair<float,float> > dataPoints() const;
+    
 private:
     // The point of origin
     std::pair<float, float> m_origin;

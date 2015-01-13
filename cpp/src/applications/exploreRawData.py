@@ -25,6 +25,8 @@ def angleOfVectors( x, y ):
         if sint > 0:
             return numpy.pi - numpy.arcsin( sint )
         else:
+            if cost > 1: cost=1
+            if cost < -1: cost=-1
             return -( numpy.arccos( cost ) )
 
 
@@ -179,7 +181,7 @@ plt.get_current_fig_manager().set_window_title("Corrected Data")
 
 # Looping over the trips
 for tripId in tripIds:
-    #if tripId != 1: continue
+    #if tripId not in (111,125,126,163,184): continue
     print( "Processing trip " + str(tripId) )
 
     # Get the raw data
