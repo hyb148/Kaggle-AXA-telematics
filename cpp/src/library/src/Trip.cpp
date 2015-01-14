@@ -85,14 +85,14 @@ Trip::generateSegments()
     std::vector< std::pair< float, float > > rawData = m_rawData;
     
     std::vector< std::vector< std::pair< float, float > > > segmentsFirstPass;
-    this->identifyGapsCorrectJitter( rawData, segmentsFirstPass );
+    this->removeZeroSpeedSegments( rawData, segmentsFirstPass );
 
     // Second pass: identify zero velocity points.
     // Remove first and last zero speed points from the trip.
     std::vector< std::vector< std::pair< float, float > > > segmentsSecondPass;
     for ( std::vector< std::vector< std::pair< float, float > > >::const_iterator iSegment = segmentsFirstPass.begin();
          iSegment != segmentsFirstPass.end(); ++iSegment )
-        this->removeZeroSpeedSegments( *iSegment, segmentsSecondPass );
+        this->identifyGapsCorrectJitter( *iSegment, segmentsSecondPass );
     segmentsFirstPass.clear();
 
     // Third pass: Remove angular jitter.
@@ -159,62 +159,90 @@ operator/( const std::pair<float,float>& v, double f )
 }
 
 
-const Trip&
-Trip::identifyGapsCorrectJitter( std::vector< std::pair< float, float > >& rawData,
-                                std::vector< std::vector< std::pair< float, float > > >& segments )
+
+Trip&
+Trip::identifyGapsCorrectJitter( const std::vector< std::pair< float, float > >& tripData,
+				 std::vector< std::vector< std::pair< float, float > > >& segments )
 {
     const double maxAcceleration = 5; // The maximum acceleration allowed in a segment
-    const double speedToTrigger = 30; // combined with a jump of ~36 metres
+    const double speedToTrigger = 10; // combined with a jump of 35 metres
     const unsigned int jitterTolerance = 1; // the number of seconds on the jitter
     
     double v_previous = 0;
-    std::pair<float,float> p_previous = rawData[0];
-    size_t i = 0;
+    std::pair<float,float> p_previous = tripData[0];
+    size_t i = 1;
+    size_t segmentStartingIndex = 0;
     
-    std::vector< size_t > gapIndices;
-
-    std::vector< std::pair<size_t, std::pair<float,float> > > jitterPoints;
-    
-    while ( i < rawData.size() - 1 ) {
-        std::pair<float,float> p_current = rawData[i];
+    while ( i < tripData.size() ) {
+        std::pair<float,float> p_current = tripData[i];
         double v_current = magnitude( p_current - p_previous );
 
-
-        // Check for abrupt high speed and high acceleration followed by normal speed
+        // Check for abrupt high speed and high acceleration in combination with no low speed.
         if ( ( std::abs( v_current - v_previous ) > maxAcceleration ) &&  v_current > speedToTrigger ) {
-            std::pair<float,float> p_next = rawData[i + 1];
-            double v_next = magnitude( p_next - p_current );
-            
-            if ( std::abs( v_current - v_next ) > maxAcceleration ) {  // We may need to relax this in order to allow for smaller decceleration values
-                double averageSpeed = 0.5 * (v_previous + v_next);
-                if (averageSpeed == 0 ) { // This is a jitter
-		  jitterPoints.push_back( std::make_pair( i, 0.5 * (p_next - p_previous) ) );
-		  v_previous = magnitude( 0.5 * (p_next - p_previous) );
-		  p_previous = p_next;
-		  i += 2;
-		  continue;
-                }
-                int secondsInGap = int( std::nearbyint( v_current / averageSpeed ) );
-                if ( secondsInGap > jitterTolerance ) {  // This is a gap
-                    gapIndices.push_back( i );
-                    i += 3;
-                    m_extraTravelDuration += secondsInGap;
-                    m_extraTravelLength += v_current;
-                    
-                    if (i < rawData.size() ) {
-                        p_previous = rawData[i-1];
-                        v_previous = magnitude( rawData[i-1] - rawData[i-2] );
-                    }
-                    continue;
-                }
-                else { // This is a jitter again. We need to correct the values
-		    jitterPoints.push_back( std::make_pair( i, 0.5 * (p_next - p_previous) ) );
-                    v_previous = magnitude( 0.5 * (p_next - p_previous) );
-                    p_previous = p_next;
-                    i += 2;
-                    continue;
-                }
-            }
+
+	    // Signal the end of the previous segment.
+	    size_t nDiff = i - segmentStartingIndex;
+	    if ( nDiff > 1 ) {
+		std::vector< std::pair< float, float > > segment( tripData.begin() + segmentStartingIndex, tripData.begin() + i );
+		segments.push_back( segment );
+	    }
+	    else {
+		// Correct duration and length of trip for the skipped mini-segment.
+		if ( i < tripData.size() - 1 ) {
+		    std::pair<float,float> p_next = tripData[i];
+		    double v_next = magnitude( p_next - p_current );
+		    if ( std::abs( v_current - v_previous ) < maxAcceleration ) {
+			m_extraTravelDuration += 1;
+			m_extraTravelLength += magnitude( p_next - p_previous );
+		    }
+		}
+	    }
+
+	    // Check whether this is a jitter or a gap and adjust the starting index accordingly, as well as the correction to the travel length and time.
+	    if ( i < tripData.size() - 1 ) {
+		
+		std::pair<float,float> p_next = tripData[i+1];
+		double v_next = magnitude( p_next - p_current );
+		if ( std::abs( v_current - v_next ) > maxAcceleration ) { // This is a gap
+		    double averageSpeedInGap = 0.5 * ( v_next + v_previous );
+		    double distanceSpentInGap = magnitude( p_current - p_previous );
+		    m_extraTravelLength += distanceSpentInGap;
+		    m_extraTravelDuration += static_cast<int>( std::nearbyint( distanceSpentInGap / averageSpeedInGap ) );
+		    segmentStartingIndex = i;
+		    ++i;
+		    p_current = p_next;
+		    v_current = v_next;
+		}
+		else { // This is a jitter. Check whether we have a sequence of spikes and skip them.
+		    size_t j = i + 2;
+		    bool endOfSpikesFound = false;
+		    while ( j < tripData.size() - 1 ) {
+			std::pair<float,float> p_nnext = tripData[j];
+			double v_nnext = magnitude( p_next - p_nnext );
+			std::pair<float,float> p_nnnext = tripData[j+1];
+			double v_nnnext = magnitude( p_nnnext - p_nnext );
+			
+			if ( std::abs( v_nnnext - v_nnext ) < maxAcceleration ) { // End of spikes.
+			    double averageSpeedInGap = 0.5 * ( v_nnext + v_previous );
+			    double distanceSpentInGap = magnitude( p_next - p_previous );
+			    m_extraTravelLength += distanceSpentInGap;
+			    m_extraTravelDuration += static_cast<int>( std::nearbyint( distanceSpentInGap / averageSpeedInGap ) );
+			    i = j;
+			    segmentStartingIndex = i-1;
+			    p_current = p_next;
+			    v_current = averageSpeedInGap;
+			    endOfSpikesFound = true;
+			    break;
+			}
+			++j;
+			p_next = p_nnext;
+		    }
+		    if ( ! endOfSpikesFound ) {
+			i = j;
+			segmentStartingIndex = i;
+		    }
+		}
+	    }
         }
 
         p_previous = p_current;
@@ -222,28 +250,16 @@ Trip::identifyGapsCorrectJitter( std::vector< std::pair< float, float > >& rawDa
         ++i;
     }
 
-    for ( std::vector< std::pair< size_t, std::pair< float, float > > >::const_iterator iJitter = jitterPoints.begin();
-	  iJitter != jitterPoints.end(); ++iJitter ) {
-      rawData[iJitter->first] = iJitter->second;
-    }
-
-    if ( gapIndices.empty() ) {
-        segments.push_back( rawData );
-        return *this;
-    }
     
-    i = 0;
-    for (size_t m = 0; m < gapIndices.size(); ++m ) {
-        std::vector< std::pair<float,float> > segment( rawData.begin() + i, rawData.begin() + gapIndices[m] );
-        if (segment.size() > 2 ) segments.push_back( segment );
-        i = gapIndices[m] + 1;
+    if ( tripData.size() - segmentStartingIndex > 2 ) {
+        std::vector< std::pair< float, float > > segment( tripData.begin()+segmentStartingIndex, tripData.end() );
+        segments.push_back( segment );
     }
-
-    std::vector< std::pair<float,float> > segment( rawData.begin() + i, rawData.end() );
-    if (segment.size() > 2 ) segments.push_back( segment );
     
     return *this;
 }
+
+
 
 static double
 angleAmongVectors( const std::pair<float,float>& v1,
@@ -273,9 +289,9 @@ angleAmongVectors( const std::pair<float,float>& v1,
 }
 
 
-const Trip&
+Trip&
 Trip::removeAccuteAngleSegments( const std::vector< std::pair< float, float > >& tripData,
-				 std::vector< std::vector< std::pair< float, float > > >& segments ) const
+				 std::vector< std::vector< std::pair< float, float > > >& segments )
 {
     const double pi = std::atan( 1.0 ) * 4;
     const double maxAngle = 100 * pi / 180.0; // 100 degrees turn in a second!
@@ -293,6 +309,10 @@ Trip::removeAccuteAngleSegments( const std::vector< std::pair< float, float > >&
 		std::vector< std::pair< float, float > > segment( tripData.begin() + segentStartingIndex, tripData.begin() + i - 1 );
 		segments.push_back( segment );
 	    }
+	    
+	    m_extraTravelDuration += 2;
+	    m_extraTravelLength += magnitude(tripData[i-2] - tripData[i]);
+	    
             segentStartingIndex = i;
 	    i += 2;
 	    if ( i - 1 < tripData.size() )
@@ -313,9 +333,9 @@ Trip::removeAccuteAngleSegments( const std::vector< std::pair< float, float > >&
 
 
 
-const Trip&
+Trip&
 Trip::removeZeroSpeedSegments( const std::vector< std::pair< float, float > >& tripData,
-			       std::vector< std::vector< std::pair< float, float > > >& segments ) const
+			       std::vector< std::vector< std::pair< float, float > > >& segments )
 {
     const double zeroSpeedTolerance = 1.5;
     

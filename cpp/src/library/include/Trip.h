@@ -68,16 +68,16 @@ private: // Private methods
     Trip& generateSegments();
     
     // Identifies the gaps and corrects the jitter generating segment data
-    const Trip& identifyGapsCorrectJitter( std::vector< std::pair< float, float > >& rawData,
-                                           std::vector< std::vector< std::pair< float, float > > >& segments );
+    Trip& identifyGapsCorrectJitter( const std::vector< std::pair< float, float > >& rawData,
+				     std::vector< std::vector< std::pair< float, float > > >& segments );
     
     // Removes the zero speed segments
-    const Trip& removeZeroSpeedSegments( const std::vector< std::pair< float, float > >& tripData,
-					 std::vector< std::vector< std::pair< float, float > > >& segments ) const;
+    Trip& removeZeroSpeedSegments( const std::vector< std::pair< float, float > >& tripData,
+				   std::vector< std::vector< std::pair< float, float > > >& segments );
     
     // Removes the segments with spurious angles
-    const Trip& removeAccuteAngleSegments( const std::vector< std::pair< float, float > >& tripData,
-					   std::vector< std::vector< std::pair< float, float > > >& segments ) const;
+    Trip& removeAccuteAngleSegments( const std::vector< std::pair< float, float > >& tripData,
+				     std::vector< std::vector< std::pair< float, float > > >& segments );
 };
 
 #endif
