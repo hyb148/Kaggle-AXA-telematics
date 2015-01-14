@@ -19,7 +19,7 @@ driverId = 1
 def findMissingData( tripData ):
     
     maxAcceleration = 5 # The maximum acceleration allowed in a segment
-    speedToTrigger = 10 # A jump of 50 metres
+    speedToTrigger = 30 # A jump of 36 metres
     jitterTolerance = 1 # the number of seconds on the jitter
 
     missingData=[]
@@ -205,7 +205,7 @@ plt.get_current_fig_manager().set_window_title("Corrected Data Pass 2")
 # Looping over the trips
 for trip in trips:
     tripId = trip[0]
-    if tripId != 150: continue
+    if tripId != 1: continue
     print( "Processing trip " + str(tripId) )
     tripData = trip[1]
 
