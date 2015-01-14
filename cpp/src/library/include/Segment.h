@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <utility>
+#include <tuple>
 
 class Segment{
 public:
@@ -17,6 +18,12 @@ public:
     
     // The angular values
     std::vector<double> angularValues() const;
+
+    // The acceleration values
+    std::vector<double> accelerationValues() const;
+
+    // The speed, acceleration and direction values as associated tuples
+    std::vector< std::tuple<double,double,double> > speedAccelerationDirectionValues() const;
     
     // The distance travelled
     double travelLength() const;

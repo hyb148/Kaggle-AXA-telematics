@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <tuple>
 
 class Segment;
 
@@ -32,6 +33,18 @@ public:
     
     // Returns the number of segments
     long numberOfSegments() const;
+
+    // Returns the speed values
+    std::vector<double> speedValues() const;
+
+    // Returns the acceleration values
+    std::vector<double> accelerationValues() const;
+
+    // Returns the direction (angular) values
+    std::vector<double> directionValues() const;
+
+    // Returns the speed, acceleration and direction values as an assosiation
+    std::vector< std::tuple<double,double,double> > speedAccelerationDirectionValues() const;
     
     // Returns the raw data
     inline const std::vector< std::pair< float, float > >& rawData() const { return m_rawData; }

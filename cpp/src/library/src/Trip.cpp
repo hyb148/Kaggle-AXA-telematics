@@ -52,6 +52,98 @@ Trip::travelLength() const
     return length + m_extraTravelLength;
 }
 
+long
+Trip::travelDuration() const
+{
+    const_cast<Trip&>(*this).generateSegments();
+    long duration = 0;
+    for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
+         iSegment != m_segments.end(); ++iSegment )
+        duration += (*iSegment)->travelDuration();
+    
+    return duration + m_extraTravelDuration;
+}
+
+
+
+std::vector<double>
+Trip::speedValues() const
+{
+    std::vector<double> speedValues;
+    speedValues.reserve( m_rawData.size() - 1 );
+
+    for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
+	  iSegment != m_segments.end(); ++iSegment ) {
+	std::vector<double> segmentValues = (*iSegment)->speedValues();
+	for ( std::vector<double>::const_iterator iValue = segmentValues.begin();
+	      iValue != segmentValues.end(); ++iValue )
+	    speedValues.push_back( *iValue );
+    }
+
+    speedValues.shrink_to_fit();
+    return speedValues;
+}
+
+
+std::vector<double>
+Trip::accelerationValues() const
+{
+    std::vector<double> accelerationValues;
+    accelerationValues.reserve( m_rawData.size() - 2 );
+
+    for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
+	  iSegment != m_segments.end(); ++iSegment ) {
+	std::vector<double> segmentValues = (*iSegment)->accelerationValues();
+	for ( std::vector<double>::const_iterator iValue = segmentValues.begin();
+	      iValue != segmentValues.end(); ++iValue )
+	    accelerationValues.push_back( *iValue );
+    }
+    
+    accelerationValues.shrink_to_fit();
+    return accelerationValues;
+}
+
+
+
+std::vector<double>
+Trip::directionValues() const
+{
+    std::vector<double> directionValues;
+    directionValues.reserve( m_rawData.size() - 2 );
+
+    for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
+	  iSegment != m_segments.end(); ++iSegment ) {
+	std::vector<double> segmentValues = (*iSegment)->angularValues();
+	for ( std::vector<double>::const_iterator iValue = segmentValues.begin();
+	      iValue != segmentValues.end(); ++iValue )
+	    directionValues.push_back( *iValue );
+    }
+
+    directionValues.shrink_to_fit();
+    return directionValues;
+}
+
+
+
+std::vector< std::tuple<double,double,double> >
+Trip::speedAccelerationDirectionValues() const
+{
+    std::vector< std::tuple<double,double,double> > speedAccelerationDirectionValues;
+    speedAccelerationDirectionValues.reserve( m_rawData.size() - 2 );
+
+    for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
+	  iSegment != m_segments.end(); ++iSegment ) {
+	std::vector< std::tuple<double,double,double> > segmentValues = (*iSegment)->speedAccelerationDirectionValues();
+	for ( std::vector< std::tuple<double,double,double> >::const_iterator iValue = segmentValues.begin();
+	      iValue != segmentValues.end(); ++iValue )
+	    speedAccelerationDirectionValues.push_back( *iValue );
+    }
+
+    return speedAccelerationDirectionValues;
+
+}
+
+
 
 long
 Trip::numberOfSegments() const
