@@ -181,7 +181,7 @@ plt.get_current_fig_manager().set_window_title("Corrected Data")
 
 # Looping over the trips
 for tripId in tripIds:
-    #if tripId not in (111,125,126,163,184): continue
+#    if tripId not in (116,126,131,167,200,30,32,46,60,81): continue
     print( "Processing trip " + str(tripId) )
 
     # Get the raw data
