@@ -8,6 +8,8 @@
 
 class Segment;
 
+#include "TripMetrics.h"
+
 class Trip {
 public:
     // Constructor
@@ -21,6 +23,9 @@ public:
     
     // Sets the trip data
     Trip& setTripData( const std::vector< std::pair<float,float> >& data );
+
+    // Returns the metrics of the trip
+    TripMetrics metrics() const;
     
     // Returns the travel duration
     long travelDuration() const;
@@ -85,8 +90,7 @@ private:
     // The distance of the end point
     double m_distanceOfEndPoint;
     
-    
-private: // Private methods
+    // Private methods. This is for segment generation
     Trip& generateSegments();
     
     // Identifies the gaps and corrects the jitter generating segment data
