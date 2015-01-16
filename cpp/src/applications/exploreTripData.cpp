@@ -2,19 +2,21 @@
 #include <fstream>
 #include <sstream>
 #include <exception>
-#include <algorithm>
 
 #include "DriverDataProcessing.h"
+#include "Segment.h"
 
 class CppToPythonPipe
 {
 public:
     explicit CppToPythonPipe( const std::string& inputFileName,
-                             const std::string& outputFileName,
-                             std::vector< std::auto_ptr<Driver> >& drivers ):
+			      const std::string& outputFileName,
+			      std::vector< std::auto_ptr<Driver> >& drivers,
+			      DriverDataProcessing& dataProcessing ):
     m_inputFileName(inputFileName),
     m_outputFileName(outputFileName),
-    m_drivers( drivers )
+    m_drivers( drivers ),
+    m_dataProcessing( dataProcessing )
     {}
     
     virtual ~CppToPythonPipe() {}
@@ -59,7 +61,34 @@ public:
         isInput >> driverId >> tripId;
 
         // Depending on the command name we can decide what data to send to the pipe
-        if ( command == "speed" ) {
+        if ( command == "rawdata" ) {
+	    const Trip* trip = this->trip( driverId, tripId );
+	    if ( trip == 0 ) return false;            
+            std::ofstream outputPipe( m_outputFileName );
+            const std::vector< std::pair< float, float > >& rawData = trip->rawData();
+            outputPipe << rawData.size() << std::endl;
+            for ( std::vector< std::pair< float, float > >::const_iterator iPoint = rawData.begin(); iPoint != rawData.end(); ++iPoint )
+                outputPipe << iPoint->first << " " << iPoint->second << std::endl;
+            outputPipe.close();
+        }
+        else if ( command == "segments" ) {
+	    const Trip* trip = this->trip( driverId, tripId );
+	    if ( trip == 0 ) return false;            
+            std::ofstream outputPipe( m_outputFileName );
+            const std::vector< Segment* >& segments = trip->segments();
+            outputPipe << segments.size() << std::endl;
+            for ( std::vector< Segment* >::const_iterator iSegment = segments.begin();
+                 iSegment != segments.end(); ++iSegment ) {
+                Segment& segment = **iSegment;
+                std::vector< std::pair<float,float> > segmentRawData = segment.dataPoints();
+                outputPipe << segmentRawData.size() << std::endl;
+                for ( std::vector< std::pair< float, float > >::const_iterator iPoint = segmentRawData.begin();
+		      iPoint != segmentRawData.end(); ++iPoint )
+                    outputPipe << iPoint->first << " " << iPoint->second << std::endl;
+            }
+	    outputPipe.close();
+        }
+        else if ( command == "speed" ) {
 	    const Trip* trip = this->trip( driverId, tripId );
 	    if ( trip == 0 ) return false;
             std::ofstream outputPipe( m_outputFileName );
@@ -182,6 +211,17 @@ public:
 	    outputPipe << trip->distanceOfEndPoint() << std::endl;
 	    outputPipe.close();
 	}
+	else if ( command == "allTripMetrics" ) {
+	    std::vector< TripMetrics > outputData;
+	    m_dataProcessing.produceTripMetrics( outputData );
+	    std::ofstream outputPipe( m_outputFileName );
+	    outputPipe << outputData.size() << std::endl;
+	    for ( std::vector< TripMetrics >::const_iterator iTripData = outputData.begin();
+		  iTripData != outputData.end(); ++iTripData ) {
+		outputPipe << *iTripData << std::endl;
+	    }
+	    outputPipe.close();
+	}
         else {
             std::cout << "Unknown Command: \"" << command << "\"" << std::endl;
             return false;
@@ -194,6 +234,7 @@ private:
     std::string m_inputFileName;
     std::string m_outputFileName;
     std::vector< std::auto_ptr<Driver> >& m_drivers;
+    DriverDataProcessing& m_dataProcessing;
 };
 
 
@@ -209,7 +250,7 @@ int main( int, char**) {
 
         std::cout << "Ready for receing commands." << std::endl;
 
-        CppToPythonPipe pipe( "pythontocpppipe", "cpptopythonpipe", drivers );
+        CppToPythonPipe pipe( "pythontocpppipe", "cpptopythonpipe", drivers, dataProcessing );
         
         while( pipe.processCommands() );
         
