@@ -15,7 +15,7 @@ INCLUDE := -I./src/library/include
 
 obj/library/%.o : src/library/src/%.cpp
 	@mkdir -p obj/library
-	clang++ -std=c++11 -stdlib=libc++ -c -O3 -pedantic-errors -Werror $(INCLUDE) -o$@ $<
+	clang++ -std=c++11 -stdlib=libc++ -c -O3 -pedantic-errors -Werror $(INCLUDE) -o $@ $<
 
 .PHONY : lib
 lib : $(LIBFILE)
@@ -28,7 +28,7 @@ $(LIBFILE): $(OBJECTS)
 # Rule for builing applications from the files and linking to the libraries
 bin/% : src/applications/%.cpp
 	@mkdir -p bin
-	clang++ -std=c++11 -stdlib=libc++ $(INCLUDE) -o$@ -L./lib -l$(LIBNAME) $<
+	clang++ -std=c++11 -stdlib=libc++ $(INCLUDE) -o $@ -L./lib -l$(LIBNAME) $<
 
 
 .PHONY : clean
