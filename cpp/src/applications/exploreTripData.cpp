@@ -107,6 +107,42 @@ public:
             }
 	    outputPipe.close();
         }
+	else if ( command == "speedQuantiles" ) {
+	    const Trip* trip = this->trip( driverId, tripId );
+	    if ( trip == 0 ) return false;            
+            std::ofstream outputPipe( m_outputFileName );
+	    std::vector<double> values = trip->speedQuantiles();
+            outputPipe << values.size() << std::endl;
+            for ( std::vector< double >::const_iterator iValue = values.begin();
+                 iValue != values.end(); ++iValue ) {
+                outputPipe << *iValue << std::endl;
+            }
+	    outputPipe.close();
+        }
+	else if ( command == "accelerationQuantiles" ) {
+	    const Trip* trip = this->trip( driverId, tripId );
+	    if ( trip == 0 ) return false;            
+            std::ofstream outputPipe( m_outputFileName );
+	    std::vector<double> values = trip->accelerationQuantiles();
+            outputPipe << values.size() << std::endl;
+            for ( std::vector< double >::const_iterator iValue = values.begin();
+                 iValue != values.end(); ++iValue ) {
+                outputPipe << *iValue << std::endl;
+            }
+	    outputPipe.close();
+        }
+	else if ( command == "directionQuantiles" ) {
+	    const Trip* trip = this->trip( driverId, tripId );
+	    if ( trip == 0 ) return false;            
+            std::ofstream outputPipe( m_outputFileName );
+	    std::vector<double> values = trip->directionQuantiles();
+            outputPipe << values.size() << std::endl;
+            for ( std::vector< double >::const_iterator iValue = values.begin();
+                 iValue != values.end(); ++iValue ) {
+                outputPipe << *iValue << std::endl;
+            }
+	    outputPipe.close();
+        }
         else if ( command == "drivers") {
             std::ofstream outputPipe( m_outputFileName );
             outputPipe << m_drivers.size() << std::endl;
