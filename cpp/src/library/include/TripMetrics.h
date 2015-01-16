@@ -1,6 +1,8 @@
 #ifndef TRIPMETRICS_H
 #define TRIPMETRICS_H
 
+#include <iosfwd>
+
 // Simple structure holding some key metrics of a trip
 class TripMetrics
 {
@@ -10,6 +12,12 @@ public:
     
     // Destructor
     ~TripMetrics();
+
+    // driver id
+    long driverId;
+
+    // trip id
+    long tripId;
 
     // The travel duration
     long travelDuration;
@@ -36,7 +44,7 @@ public:
     double acceleration_p05;
 
     // The 25th percentile of the acceleration distribution
-    double acceleration_q25;
+    double acceleration_p25;
 
     // The inter-quantile distance of the acceleration distribution
     double acceleration_q13;
@@ -51,7 +59,7 @@ public:
     double direction_p05;
 
     // The 25th percentile of the direction distribution
-    double direction_q25;
+    double direction_p25;
 
     // The inter-quantile distance of the direction distribution
     double direction_q13;
@@ -71,5 +79,10 @@ public:
     // The R^2 value of the acceleration to direction correlation
     double r2_ad;
 };
+
+// Overloading the output stream operator
+
+std::ostream& operator<<( std::ostream& os,
+			  const TripMetrics& metrics );
 
 #endif

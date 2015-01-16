@@ -42,6 +42,128 @@ Trip::setTripData( const std::vector< std::pair<float,float> >& data )
 }
 
 
+static std::vector< double >
+findQuantiles( std::vector<double>& values )
+{
+    if (values.size() == 0 )
+	return std::vector<double>();
+    
+    size_t Q05 = ( values.size() *  5 ) / 100;
+    size_t Q25 = ( values.size() * 25 ) / 100;
+    size_t Q50 = ( values.size() * 50 ) / 100;
+    size_t Q75 = ( values.size() * 75 ) / 100;
+    size_t Q95 = ( values.size() * 95 ) / 100;
+
+    std::nth_element(values.begin()          , values.begin() + Q05, values.end() );
+    std::nth_element(values.begin() + Q05 + 1, values.begin() + Q25, values.end() );
+    std::nth_element(values.begin() + Q25 + 1, values.begin() + Q50, values.end() );
+    std::nth_element(values.begin() + Q50 + 1, values.begin() + Q75, values.end() );
+    std::nth_element(values.begin() + Q75 + 1, values.begin() + Q95, values.end() );
+
+    return std::vector<double> ( {
+	        *(values.begin() + Q05),
+		*(values.begin() + Q25),
+		*(values.begin() + Q50),
+		*(values.begin() + Q75),
+		*(values.begin() + Q95) } );
+}
+
+
+static double
+r2_correlation( const std::vector<double>& x,
+		const std::vector<double>& y )
+{
+    double Sx = 0;
+    double Sy = 0;
+    double Sxy = 0;
+    double Sxx = 0;
+
+    size_t n = x.size();
+
+    for ( size_t i = 0; i < n; ++i ) {
+	Sx += x[i];
+	Sy += y[i];
+	Sxy += x[i] * y[i];
+	Sxx += x[i] * x[i];
+    }
+    double Yb = Sy / n;
+    double Xb = Sx / n;
+    
+    double slope = ( n * Sxy - Sx * Sy ) / ( n * Sxx - Sx * Sx);
+    double y_intercept = Yb - slope * Xb;
+
+    double S_Yres = 0;
+    double Sres = 0;
+    
+    for ( size_t i = 0; i < n; ++i ) {
+	S_Yres += std::pow( y[i] - y_intercept - slope * x[i], 2 );
+	Sres += std::pow( y[i] - Yb, 2);
+    }
+    
+    return (Sres - S_Yres ) / Sres ;
+}
+
+
+TripMetrics
+Trip::metrics() const
+{
+    TripMetrics metrics;
+    const_cast<Trip&>(*this).generateSegments();
+
+    metrics.tripId = m_tripId;
+    metrics.travelDuration = this->travelDuration();
+    metrics.travelLength = this->travelLength();
+    if ( m_distanceOfEndPoint > 0 )
+	metrics.lengthToDistance = metrics.travelLength / m_distanceOfEndPoint;
+
+    std::vector<double> speedValues;
+    speedValues.reserve( m_rawData.size() - 2 );
+    std::vector<double> accelerationValues;
+    accelerationValues.reserve( m_rawData.size() - 2 );
+    std::vector<double> directionValues;
+    directionValues.reserve( m_rawData.size() - 2 );
+
+    for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
+	  iSegment != m_segments.end(); ++iSegment ) {
+	std::vector< std::tuple<double,double,double> > segmentValues = (*iSegment)->speedAccelerationDirectionValues();
+	for ( std::vector< std::tuple<double,double,double> >::const_iterator iValue = segmentValues.begin();
+	      iValue != segmentValues.end(); ++iValue ) {
+	    speedValues.push_back( std::get<0>( *iValue ) );
+	    accelerationValues.push_back( std::get<1>( *iValue ) );
+	    directionValues.push_back( std::get<2>( *iValue ) );
+	}
+    }
+
+    if ( speedValues.size() < 3 ) return metrics;
+
+    metrics.r2_sa = r2_correlation( speedValues, accelerationValues );
+    metrics.r2_sd = r2_correlation( speedValues, directionValues );
+    metrics.r2_ad = r2_correlation( accelerationValues, directionValues );
+    
+    // Calculate the percentiles.
+    std::vector<double> speedPercentiles = findQuantiles( speedValues );
+    metrics.speed_p25 = speedPercentiles[1];
+    metrics.speed_q13 = speedPercentiles[3] - speedPercentiles[1];
+    metrics.speed_m = speedPercentiles[2];
+    metrics.speed_p95 = speedPercentiles[4];
+    std::vector<double> accelerationPercentiles = findQuantiles( accelerationValues );
+    metrics.acceleration_p05 = accelerationPercentiles[0];
+    metrics.acceleration_p25 = accelerationPercentiles[1];
+    metrics.acceleration_q13 = accelerationPercentiles[3] - accelerationPercentiles[1];
+    metrics.acceleration_m = accelerationPercentiles[2];
+    metrics.acceleration_p95 = accelerationPercentiles[4];
+    std::vector<double> directionPercentiles = findQuantiles( directionValues );
+    metrics.direction_p05 = directionPercentiles[0];
+    metrics.direction_p25 = directionPercentiles[1];
+    metrics.direction_q13 = directionPercentiles[3] - directionPercentiles[1];
+    metrics.direction_m = directionPercentiles[2];
+    metrics.direction_p95 = directionPercentiles[4];
+
+    return metrics;
+}
+
+
+
 double
 Trip::travelLength() const
 {
@@ -466,32 +588,6 @@ Trip::removeZeroSpeedSegments( const std::vector< std::pair< float, float > >& t
     }
 
     return *this;
-}
-
-static std::vector< double >
-findQuantiles( std::vector<double>& values )
-{
-    if (values.size() == 0 )
-	return std::vector<double>();
-    
-    size_t Q05 = ( values.size() *  5 ) / 100;
-    size_t Q25 = ( values.size() * 25 ) / 100;
-    size_t Q50 = ( values.size() * 50 ) / 100;
-    size_t Q75 = ( values.size() * 75 ) / 100;
-    size_t Q95 = ( values.size() * 95 ) / 100;
-
-    std::nth_element(values.begin()          , values.begin() + Q05, values.end() );
-    std::nth_element(values.begin() + Q05 + 1, values.begin() + Q25, values.end() );
-    std::nth_element(values.begin() + Q25 + 1, values.begin() + Q50, values.end() );
-    std::nth_element(values.begin() + Q50 + 1, values.begin() + Q75, values.end() );
-    std::nth_element(values.begin() + Q75 + 1, values.begin() + Q95, values.end() );
-
-    return std::vector<double> ( {
-	        *(values.begin() + Q05),
-		*(values.begin() + Q25),
-		*(values.begin() + Q50),
-		*(values.begin() + Q75),
-		*(values.begin() + Q95) } );
 }
 
 

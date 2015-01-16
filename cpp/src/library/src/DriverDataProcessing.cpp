@@ -50,7 +50,7 @@ static void readThreadFunction( std::mutex* pinputMutex,
         
         Driver* driver = new Driver( driverTripDataIO.id() );
         driver->loadTripData( driverTripDataIO.rawData() );
-
+	
         outputMutex.lock();
         drivers.push_back( driver );
         outputMutex.unlock();
@@ -97,4 +97,97 @@ DriverDataProcessing::loadAllData( int numberOfThreads ) const
     }
     
     return result;
+}
+
+
+
+
+
+//******************************************************************************
+
+
+
+static
+void metricsThreadFunction( std::mutex* pinputMutex,
+			    std::list<std::string>* pdriverFiles,
+			    std::mutex* poutputMutex,
+			    std::vector< TripMetrics >* pmetrics,
+			    ProcessLogger* plog )
+{
+    std::mutex& inputMutex = *pinputMutex;
+    std::list<std::string>& driverFiles = *pdriverFiles;
+    std::mutex& outputMutex = *poutputMutex;
+    std::vector< TripMetrics >& metrics = *pmetrics;
+    ProcessLogger& log = *plog;
+    
+    while (true) {
+        inputMutex.lock();
+        if ( driverFiles.empty() ) {
+            inputMutex.unlock();
+            break;
+        }
+        std::string driverFile = driverFiles.front();
+        driverFiles.pop_front();
+        inputMutex.unlock();
+        
+        size_t pos = driverFile.find( "/" );
+        
+        int driverId = 0;
+        std::istringstream isId( driverFile.substr(pos+1) );
+        isId >> driverId;
+        
+        DriverTripDataIO driverTripDataIO( driverId );
+	driverTripDataIO.readDataFromBinaryFile( driverFile.substr(0,pos) );
+        
+        Driver driver( driverTripDataIO.id() );
+	driver.loadTripData( driverTripDataIO.rawData() );
+	const std::vector< Trip >& trips = driver.trips();
+
+	std::vector< TripMetrics > localMetrics;
+	localMetrics.reserve(200);
+	for ( std::vector< Trip >::const_iterator iTrip = trips.begin();
+	      iTrip != trips.end(); ++iTrip ) {
+	    TripMetrics m = iTrip->metrics();
+	    m.driverId = driver.id();
+	    localMetrics.push_back( m );
+	}
+        outputMutex.lock();
+	for ( std::vector< TripMetrics >::const_iterator iMetrics = localMetrics.begin();
+	      iMetrics != localMetrics.end(); ++iMetrics )
+	    metrics.push_back( *iMetrics );
+	outputMutex.unlock();
+        log.taskEnded();
+    }
+}
+
+
+
+void
+DriverDataProcessing::produceTripMetrics( std::vector< TripMetrics >& outputData,
+					  int numberOfThreads ) const
+{
+    // The driver vector
+    DirectoryListing dirList( m_driversDirectory );
+    std::list<std::string> driverFiles = dirList.directoryContent();
+    for (std::list<std::string>::iterator iDriverFile = driverFiles.begin();
+         iDriverFile != driverFiles.end(); ++iDriverFile ) {
+        *iDriverFile = m_driversDirectory + "/" + *iDriverFile;
+    }
+    
+    outputData.clear();
+    outputData.reserve( driverFiles.size() * 200 );
+    
+    std::mutex inputMutex; // Mutex for protecting the input driver list operations
+    std::mutex outputMutex; // Mutex for protecting the output driver vector operations
+    
+    ProcessLogger log( driverFiles.size() );
+    
+    std::vector<std::thread> threads;
+    for ( int i = 0; i < numberOfThreads; ++i ) {
+        threads.push_back( std::thread( metricsThreadFunction, &inputMutex, &driverFiles, &outputMutex, &outputData, &log ) );
+    }
+    
+    for ( int i = 0; i < numberOfThreads; ++i ) {
+        threads[i].join();
+    }
 }
