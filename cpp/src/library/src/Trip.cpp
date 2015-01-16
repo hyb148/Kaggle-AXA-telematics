@@ -1,6 +1,8 @@
 #include "Trip.h"
 #include "Segment.h"
 #include <cmath>
+#include <algorithm>
+
 
 Trip::Trip( int tripId):
   m_tripId( tripId ),
@@ -69,6 +71,7 @@ Trip::travelDuration() const
 std::vector<double>
 Trip::speedValues() const
 {
+    const_cast<Trip&>(*this).generateSegments();
     std::vector<double> speedValues;
     speedValues.reserve( m_rawData.size() - 1 );
 
@@ -80,7 +83,7 @@ Trip::speedValues() const
 	    speedValues.push_back( *iValue );
     }
 
-    speedValues.shrink_to_fit();
+    speedValues.shrink_to_fit();    
     return speedValues;
 }
 
@@ -88,6 +91,7 @@ Trip::speedValues() const
 std::vector<double>
 Trip::accelerationValues() const
 {
+    const_cast<Trip&>(*this).generateSegments();
     std::vector<double> accelerationValues;
     accelerationValues.reserve( m_rawData.size() - 2 );
 
@@ -108,6 +112,7 @@ Trip::accelerationValues() const
 std::vector<double>
 Trip::directionValues() const
 {
+    const_cast<Trip&>(*this).generateSegments();
     std::vector<double> directionValues;
     directionValues.reserve( m_rawData.size() - 2 );
 
@@ -128,6 +133,7 @@ Trip::directionValues() const
 std::vector< std::tuple<double,double,double> >
 Trip::speedAccelerationDirectionValues() const
 {
+    const_cast<Trip&>(*this).generateSegments();
     std::vector< std::tuple<double,double,double> > speedAccelerationDirectionValues;
     speedAccelerationDirectionValues.reserve( m_rawData.size() - 2 );
 
@@ -461,4 +467,55 @@ Trip::removeZeroSpeedSegments( const std::vector< std::pair< float, float > >& t
 
     return *this;
 }
+
+static std::vector< double >
+findQuantiles( std::vector<double>& values )
+{
+    if (values.size() == 0 )
+	return std::vector<double>();
+    
+    size_t Q05 = ( values.size() *  5 ) / 100;
+    size_t Q25 = ( values.size() * 25 ) / 100;
+    size_t Q50 = ( values.size() * 50 ) / 100;
+    size_t Q75 = ( values.size() * 75 ) / 100;
+    size_t Q95 = ( values.size() * 95 ) / 100;
+
+    std::nth_element(values.begin()          , values.begin() + Q05, values.end() );
+    std::nth_element(values.begin() + Q05 + 1, values.begin() + Q25, values.end() );
+    std::nth_element(values.begin() + Q25 + 1, values.begin() + Q50, values.end() );
+    std::nth_element(values.begin() + Q50 + 1, values.begin() + Q75, values.end() );
+    std::nth_element(values.begin() + Q75 + 1, values.begin() + Q95, values.end() );
+
+    return std::vector<double> ( {
+	        *(values.begin() + Q05),
+		*(values.begin() + Q25),
+		*(values.begin() + Q50),
+		*(values.begin() + Q75),
+		*(values.begin() + Q95) } );
+}
+
+
+std::vector< double >
+Trip::speedQuantiles() const
+{
+    std::vector<double> values = this->speedValues();
+    return findQuantiles( values );
+}
+
+
+std::vector< double >
+Trip::accelerationQuantiles() const
+{
+    std::vector<double> values = this->accelerationValues();
+    return findQuantiles( values );
+}
+
+
+std::vector< double >
+Trip::directionQuantiles() const
+{
+    std::vector<double> values = this->directionValues();
+    return findQuantiles( values );
+}
+
 

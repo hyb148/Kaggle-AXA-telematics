@@ -45,6 +45,15 @@ public:
 
     // Returns the speed, acceleration and direction values as an assosiation
     std::vector< std::tuple<double,double,double> > speedAccelerationDirectionValues() const;
+
+    // Returns the 5th, 25th, 50th, 75th and 95th quantile of the speed distribution
+    std::vector< double > speedQuantiles() const;
+
+    // Returns the 5th, 25th, 50th, 75th and 95th quantile of the acceleration distribution
+    std::vector< double > accelerationQuantiles() const;
+    
+    // Returns the 5th, 25th, 50th, 75th and 95th quantile of the direction distribution
+    std::vector< double > directionQuantiles() const;
     
     // Returns the raw data
     inline const std::vector< std::pair< float, float > >& rawData() const { return m_rawData; }
