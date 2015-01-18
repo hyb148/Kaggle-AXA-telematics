@@ -30,6 +30,9 @@ public:
     
     // The time duration
     long travelDuration() const;
+
+    // The number of data points
+    inline long numberOfDataPoints() const { return m_velocityVectors.size() + 1; }
     
     // The data points
     std::vector< std::pair<float,float> > dataPoints() const;

@@ -215,6 +215,20 @@ public:
 	    std::vector< TripMetrics > outputData;
 	    m_dataProcessing.produceTripMetrics( outputData );
 	    std::ofstream outputPipe( m_outputFileName );
+	    TripMetrics::variableNames( outputPipe ) << std::endl;
+	    outputPipe << outputData.size() << std::endl;
+	    for ( std::vector< TripMetrics >::const_iterator iTripData = outputData.begin();
+		  iTripData != outputData.end(); ++iTripData ) {
+		outputPipe << *iTripData << std::endl;
+	    }
+	    outputPipe.close();
+	}
+	else if ( command == "driverTripMetrics" ) {
+	    Driver* driver = this->driver( driverId );
+	    if ( driver == 0 ) return false;
+	    std::vector< TripMetrics > outputData = driver->tripMetrics();
+	    std::ofstream outputPipe( m_outputFileName );
+	    TripMetrics::variableNames( outputPipe ) << std::endl;
 	    outputPipe << outputData.size() << std::endl;
 	    for ( std::vector< TripMetrics >::const_iterator iTripData = outputData.begin();
 		  iTripData != outputData.end(); ++iTripData ) {

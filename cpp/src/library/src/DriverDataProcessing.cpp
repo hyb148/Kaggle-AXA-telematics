@@ -143,15 +143,9 @@ void metricsThreadFunction( std::mutex* pinputMutex,
 	driver.loadTripData( driverTripDataIO.rawData() );
 	const std::vector< Trip >& trips = driver.trips();
 
-	std::vector< TripMetrics > localMetrics;
-	localMetrics.reserve(200);
-	for ( std::vector< Trip >::const_iterator iTrip = trips.begin();
-	      iTrip != trips.end(); ++iTrip ) {
-	    TripMetrics m = iTrip->metrics();
-	    m.driverId = driver.id();
-	    localMetrics.push_back( m );
-	}
-        outputMutex.lock();
+	std::vector< TripMetrics > localMetrics = driver.tripMetrics();
+
+	outputMutex.lock();
 	for ( std::vector< TripMetrics >::const_iterator iMetrics = localMetrics.begin();
 	      iMetrics != localMetrics.end(); ++iMetrics )
 	    metrics.push_back( *iMetrics );

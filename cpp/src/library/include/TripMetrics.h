@@ -25,17 +25,14 @@ public:
     // The travel length
     double travelLength;
 
-    // The ratio of the travel length to the distance of the end point
-    double lengthToDistance;
-
     // The 25th percentile of the speed distribution
     double speed_p25;
 
-    // The inter-quantile distance of the speed distribution
-    double speed_q13;
-    
     // The median the speed distribution
-    double speed_m;
+    double speed_p50;
+
+    // The 75th percentile of the speed distribution
+    double speed_p75;
 
     // The 95th percentile of the speed distribution
     double speed_p95;
@@ -46,12 +43,9 @@ public:
     // The 25th percentile of the acceleration distribution
     double acceleration_p25;
 
-    // The inter-quantile distance of the acceleration distribution
-    double acceleration_q13;
+    // The 75th percentile of the acceleration distribution
+    double acceleration_p75;
 
-    // The median of the acceleration distribution
-    double acceleration_m;
-    
     // The 95th percentile of the acceleration distribution
     double acceleration_p95;
 
@@ -61,23 +55,37 @@ public:
     // The 25th percentile of the direction distribution
     double direction_p25;
 
-    // The inter-quantile distance of the direction distribution
-    double direction_q13;
+    // The 75th percentile of the direction distribution
+    double direction_p75;
 
-    // The median of the direction distribution
-    double direction_m;
-    
     // The 95th percentile of the direction distribution
     double direction_p95;
 
-    // The R^2 value of the speed to acceleration correlation
-    double r2_sa;
+    // The 5th percentile of the speedXacceleration distribution
+    double speedXacceleration_p05;
 
-    // The R^2 value of the speed to direction correlation
-    double r2_sd;
+    // The 25th percentile of the speedXacceleration distribution
+    double speedXacceleration_p25;
 
-    // The R^2 value of the acceleration to direction correlation
-    double r2_ad;
+    // The 75th percentile of the speedXacceleration distribution
+    double speedXacceleration_p75;
+
+    // The 95th percentile of the speedXacceleration distribution
+    double speedXacceleration_p95;
+
+    // The total negative turns (normalised to the trip length)
+    double negativeTurns;
+
+    // The total negative turns (normalised to the trip length)
+    double positiveTurns;
+
+    // Flag weather the trip contains 0 segments
+    int zeroSegments;
+
+    // Flag weather the trip contains less than 20 points after filtering
+    int lessThan20Points;
+
+    static std::ostream& variableNames( std::ostream& os );
 };
 
 // Overloading the output stream operator
