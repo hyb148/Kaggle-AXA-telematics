@@ -1,3 +1,7 @@
 Tag : s001
 score : 0.80866
 Initial submission with histograming of the original set of metrics using as a probability the formula (p_driver)/(p_driver + p_background) and averaging over the various probabilities.
+
+Tag : s002
+score : 0.80886
+Calculates the standard deviation of each reference histogram, and used this as a weight for the calculation of the average score.

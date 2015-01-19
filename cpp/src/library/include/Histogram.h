@@ -29,6 +29,9 @@ class Histogram
     // Dumps the histograms to output
     std::ostream& contents( std::ostream& os ) const;
 
+    // Calculates the normalised standard deviation
+    double normalisedStandardDeviation() const;
+
  private:
     // The histogram probability values
     std::vector< double > m_prob;

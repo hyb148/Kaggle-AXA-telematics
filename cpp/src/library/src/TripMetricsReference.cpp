@@ -13,7 +13,8 @@ TripMetricsReference::TripMetricsReference():
     m_transformations( TripMetrics::transformations() ),
     m_validityChecks( TripMetrics::validityChecks() ),
     m_originalEdges(),
-    m_generated( false )
+    m_generated( false ),
+    m_std()
 {}
 
 
@@ -33,6 +34,7 @@ TripMetricsReference::clear()
     m_zeroSegmentRatio = 0;
     m_lowPointsRatio = 0;
     m_originalEdges.clear();
+    m_std.clear();
     return *this;
 }
 
@@ -143,10 +145,12 @@ TripMetricsReference::initialise( const std::vector< TripMetrics >& metricsData 
 	for ( size_t j = highEdgeIndex + 1; j < metricValues.size(); ++j ) metricValues[j] = overflowValue;
 
 	// create and fill in the histogram
-	m_histograms.push_back( new Histogram( metricValues,
-					       numberOfBins,
-					       lowEdge,
-					       highEdge ) );
+	Histogram* hist = new Histogram( metricValues,
+					 numberOfBins,
+					 lowEdge,
+					 highEdge );
+	m_histograms.push_back( hist );
+	m_std.push_back( hist->normalisedStandardDeviation() );
 	log.taskEnded();
     }
 

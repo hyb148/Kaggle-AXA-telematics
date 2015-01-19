@@ -23,6 +23,9 @@ class TripMetricsReference
     // Creates a new TripMetricsReference object using the existing internal structures for normalisation
     TripMetricsReference* createUsingReference( const std::vector< TripMetrics >& metricsData );
 
+    // Returns the standard deviation values of the metrics
+    inline const std::vector< double >& std() const {return m_std;}
+
  private:
     // Method for clearing the internal structures
     TripMetricsReference& clear();
@@ -46,6 +49,9 @@ class TripMetricsReference
 
     // Flag indicating if this is a generated object
     bool m_generated;
+
+    // The standard deviations of the histogram distributions to be used as weights in the mertics scores
+    std::vector< double > m_std;
 };
 
 #endif

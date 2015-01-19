@@ -67,3 +67,34 @@ Histogram::contents( std::ostream& os ) const
     os << std::endl;
     return os;
 }
+
+
+
+double
+Histogram::normalisedStandardDeviation() const
+{
+    const double range = m_highEdge - m_lowEdge;
+    std::vector<double> binCentres( m_bins, 0 );
+
+    for ( size_t i = 0; i < binCentres.size(); ++i ) {
+	binCentres[i] = (i + 0.5) * m_binSize / range;
+    }
+
+    double swx = 0;
+    double sw = 0;
+
+    for ( size_t i = 0; i < binCentres.size(); ++i ) {
+	sw += binCentres[i];
+	swx += binCentres[i] * m_prob[i+1];
+    }
+
+    double xbar = swx / sw;
+    double sd2 = 0;
+
+    for ( size_t i = 0; i < binCentres.size(); ++i ) {
+	sd2 += ( binCentres[i] - xbar ) * ( binCentres[i] - xbar ) * m_prob[i+1];
+    }
+    sd2 /= sw;
+
+    return std::sqrt( sd2 );
+}

@@ -203,6 +203,11 @@ DriverDataProcessing::scoreTrips( std::vector< std::tuple< long, long, double > 
     size_t numberOfDrivers = this->produceTripMetrics( tripMetrics, numberOfThreads );
     masterReference.initialise( tripMetrics);
 
+    const std::vector<double>& weights = masterReference.std();
+    double sumOfWeights = 0;
+    for ( std::vector<double>::const_iterator iWeight = weights.begin();
+	  iWeight != weights.end(); ++iWeight ) sumOfWeights += *iWeight;
+
     ProcessLogger log( numberOfDrivers, "Calculating the trip scores : " );
 
     // For each driver construct the local reference and then score the trips within the metrics set.
@@ -244,17 +249,22 @@ DriverDataProcessing::scoreTrips( std::vector< std::tuple< long, long, double > 
 	    
 	    // Calculate the average score
 	    double score = 0;
-	    for ( size_t iScore = 0; iScore < scoresFromDriver.size(); ++ iScore ) {
-		double probabilityFromDriver = scoresFromDriver[iScore];
-		if ( probabilityFromDriver == 0 ) {
-		    std::ostringstream os;
-		    os << "Driver " << iTripMetrics->driverId << ", trip " << iTripMetrics->tripId << ", metric " << iScore << " : Probability from driver found 0!!!";
-		    throw std::runtime_error( os.str() );
-		}
-		double probabilityFromReference = scoresFromReference[iScore];
-		score += probabilityFromDriver / ( probabilityFromDriver + probabilityFromReference );
+	    if ( scoresFromDriver.size() == 1 ) {
+		score = scoresFromDriver[0] / ( scoresFromReference[0] + scoresFromDriver[0] );
 	    }
-	    score /= scoresFromDriver.size();
+	    else {
+		for ( size_t iScore = 0; iScore < scoresFromDriver.size(); ++ iScore ) {
+		    double probabilityFromDriver = scoresFromDriver[iScore];
+		    if ( probabilityFromDriver == 0 ) {
+			std::ostringstream os;
+			os << "Driver " << iTripMetrics->driverId << ", trip " << iTripMetrics->tripId << ", metric " << iScore << " : Probability from driver found 0!!!";
+			throw std::runtime_error( os.str() );
+		}
+		    double probabilityFromReference = scoresFromReference[iScore];
+		    score += weights[iScore] * probabilityFromDriver / ( probabilityFromDriver + probabilityFromReference );
+		}
+		score /= sumOfWeights;
+	    }
 	    
 	    // Report the score
 	    long tripId = iTripMetrics->tripId;
