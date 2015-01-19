@@ -39,5 +39,4 @@ double
 r2_correlation( const std::vector<double>& x,
 		const std::vector<double>& y );
 
-
 #endif

@@ -4,9 +4,12 @@
 #include <iomanip>
 #include <string>
 
-ProcessLogger::ProcessLogger( long numberOfTasks ):
+ProcessLogger::ProcessLogger( long numberOfTasks,
+			      std::string messagePrefix ):
   m_numberOfTasks( numberOfTasks ),
-  m_completedTasks( 0 )
+  m_completedTasks( 0 ),
+  m_prefix( messagePrefix ),
+  m_mutex()
 {}
 
 void
@@ -17,7 +20,7 @@ ProcessLogger::taskEnded()
     m_completedTasks++;
     if ( m_completedTasks > 1 ) std::cout << "\r";
     float percentage = 100.0 * m_completedTasks / m_numberOfTasks ;
-    std::cout << "Tasks processed: " << std::fixed << std::setprecision(2) << percentage << "%";
+    std::cout << m_prefix << std::fixed << std::setprecision(2) << percentage << "%";
     if ( m_completedTasks == m_numberOfTasks ) std::cout << std::endl;
     std::cout.flush();
 }

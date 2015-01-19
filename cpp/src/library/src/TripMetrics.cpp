@@ -1,5 +1,6 @@
 #include "TripMetrics.h"
 #include <ostream>
+#include <cmath>
 
 TripMetrics::TripMetrics():
     driverId(0),
@@ -91,4 +92,96 @@ operator<<( std::ostream& os,
 	metrics.lessThan20Points;
     
     return os;
+}
+
+std::vector<double>
+TripMetrics::values() const
+{
+    std::vector<double> result;
+    result.reserve( 20 );
+    
+    result.push_back( travelDuration );
+    result.push_back( travelLength );
+    result.push_back( speed_p25 );
+    result.push_back( speed_p50 );
+    result.push_back( speed_p75 );
+    result.push_back( speed_p95 );
+    result.push_back( acceleration_p05 );
+    result.push_back( acceleration_p25 );
+    result.push_back( acceleration_p75 );
+    result.push_back( acceleration_p95 );
+    result.push_back( direction_p05 );
+    result.push_back( direction_p25 );
+    result.push_back( direction_p75 );
+    result.push_back( direction_p95 );
+    result.push_back( speedXacceleration_p05 );
+    result.push_back( speedXacceleration_p25 );
+    result.push_back( speedXacceleration_p75 );
+    result.push_back( speedXacceleration_p95 );
+    result.push_back( negativeTurns );
+    result.push_back( positiveTurns );
+
+    return result;
+}
+
+
+
+std::vector< std::function<bool(double) > >
+TripMetrics::validityChecks()
+{
+    std::vector< std::function<bool(double)> > result;
+    result.reserve(20);
+    result.push_back( [](double x){ return (1+x>0);} ); // travelDuration
+    result.push_back( [](double x){ return (1+x>0);} ); // travelLength
+    result.push_back( [](double x){ return (1+x>0);} ); // speed_p25
+    result.push_back( [](double x){ return (1+x>0);} ); // speed_p50
+    result.push_back( [](double x){ return (1+x>0);} ); // speed_p75
+    result.push_back( [](double x){ return (1+x>0);} ); // speed_p95
+    result.push_back( [](double x){ return (x<0);} ); // acceleration_p05
+    result.push_back( [](double x){ return (x<0);} ); // acceleration_p25
+    result.push_back( [](double x){ return (x>0);} ); // acceleration_p75
+    result.push_back( [](double x){ return (x>0);}  ); // acceleration_p95
+    result.push_back( [](double x){ return (x<0);}  ); // direction_p05
+    result.push_back( [](double x){ return (x<0);}  ); // direction_p25
+    result.push_back( [](double x){ return (x>0);}  ); // direction_p75
+    result.push_back( [](double x){ return (x>0);}  ); // direction_p95
+    result.push_back( [](double x){ return (x<0);}  ); // speedXacceleration_p05
+    result.push_back( [](double x){ return (x<0);}  ); // speedXacceleration_p25
+    result.push_back( [](double x){ return (x>0);}  ); // speedXacceleration_p75
+    result.push_back( [](double x){ return (x>0);}  ); // speedXacceleration_p95
+    result.push_back( [](double x){ return (0.001+x>0);}  ); // negativeTurns
+    result.push_back( [](double x){ return (0.001+x>0);}  ); // positiveTurns
+
+    return result;
+}
+
+
+std::vector< std::function<double(double)> >
+TripMetrics::transformations()
+{
+    std::vector< std::function<double(double)> > result;
+
+    result.reserve(20);
+    result.push_back( [](double x){ return std::log10(1+x);} ); // travelDuration
+    result.push_back( [](double x){ return std::log10(1+x);} ); // travelLength
+    result.push_back( [](double x){ return std::log10(1+x);} ); // speed_p25
+    result.push_back( [](double x){ return std::log10(1+x);} ); // speed_p50
+    result.push_back( [](double x){ return std::log10(1+x);} ); // speed_p75
+    result.push_back( [](double x){ return std::log10(1+x);} ); // speed_p95
+    result.push_back( [](double x){ return std::log10(-x);} ); // acceleration_p05
+    result.push_back( [](double x){ return std::log10(-x);} ); // acceleration_p25
+    result.push_back( [](double x){ return std::log10(x);} ); // acceleration_p75
+    result.push_back( [](double x){ return std::log10(x);} ); // acceleration_p95
+    result.push_back( [](double x){ return std::log10(-x);} ); // direction_p05
+    result.push_back( [](double x){ return std::log10(-x);} ); // direction_p25
+    result.push_back( [](double x){ return std::log10(x);} ); // direction_p75
+    result.push_back( [](double x){ return std::log10(x);} ); // direction_p95
+    result.push_back( [](double x){ return std::log10(-x);} ); // speedXacceleration_p05
+    result.push_back( [](double x){ return std::log10(-x);} ); // speedXacceleration_p25
+    result.push_back( [](double x){ return std::log10(x);} ); // speedXacceleration_p75
+    result.push_back( [](double x){ return std::log10(x);} ); // speedXacceleration_p95
+    result.push_back( [](double x){ return std::log10(0.001+x);} ); // negativeTurns
+    result.push_back( [](double x){ return std::log10(0.001+x);} ); // positiveTurns
+
+    return result;
 }

@@ -2,6 +2,8 @@
 #define TRIPMETRICS_H
 
 #include <iosfwd>
+#include <vector>
+#include <functional>
 
 // Simple structure holding some key metrics of a trip
 class TripMetrics
@@ -85,7 +87,16 @@ public:
     // Flag weather the trip contains less than 20 points after filtering
     int lessThan20Points;
 
+    // Returns the non-binary values as a vector of doubles
+    std::vector<double> values() const;
+    
+    // Writes the description of the variables to an output stream
     static std::ostream& variableNames( std::ostream& os );
+
+    // Returns a vector for the functional objects to be applied to the non-binary values
+    static std::vector< std::function<double(double)> > transformations();
+    // Returns a vector for the validity of the input value to the transformation
+    static std::vector< std::function<bool(double)> > validityChecks();
 };
 
 // Overloading the output stream operator

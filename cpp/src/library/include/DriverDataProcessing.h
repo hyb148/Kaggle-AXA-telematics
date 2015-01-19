@@ -3,6 +3,7 @@
 
 #include <string>
 #include <memory>
+#include <tuple>
 #include "Driver.h"
 #include "TripMetrics.h"
 
@@ -17,9 +18,13 @@ public:
     // Loads all the trip data in memory
     std::vector< std::auto_ptr<Driver> > loadAllData( int numberOfThreads = 6 ) const;
 
-    // Produces the trip metrics for all trivers and trips
-    void produceTripMetrics( std::vector< TripMetrics >& outputData,
-			     int numberOfThreads = 6 ) const;
+    // Produces the trip metrics for all trivers and trips. Returns the number of drivers
+    size_t produceTripMetrics( std::vector< TripMetrics >& outputData,
+			       int numberOfThreads = 6 ) const;
+
+    // Calculates the trip scores by comparing driver metrics against population metrics
+    void scoreTrips( std::vector< std::tuple< long, long, double > >& output,
+		     int numberOfThreads = 6 ) const;
     
 private:
     std::string m_driversDirectory;
