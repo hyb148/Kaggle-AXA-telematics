@@ -9,3 +9,7 @@ Calculates the standard deviation of each reference histogram, and used this as 
 Tag : s003
 score : 0.81010
 Reduced the number of bins from 35 to 30 for the driver histogram
+
+Tag : s004
+score : 0.81122
+Reduced the number of bins from 30 to 25 for the driver histogram

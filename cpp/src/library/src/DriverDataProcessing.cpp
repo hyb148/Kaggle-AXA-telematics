@@ -8,7 +8,7 @@
 #include <mutex>
 #include <sstream>
 #include <exception>
-
+#include <set>
 
 DriverDataProcessing::DriverDataProcessing( const std::string& driversDirectory ):
   m_driversDirectory( driversDirectory )
@@ -204,9 +204,17 @@ DriverDataProcessing::scoreTrips( std::vector< std::tuple< long, long, double > 
     masterReference.initialise( tripMetrics);
 
     const std::vector<double>& weights = masterReference.std();
+
+
+    // The list of the metrics indices to be used in scoring
+    //std::set<size_t> indicesForScoring = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 };
+    std::set<size_t> indicesForScoring = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 };
+    
+    
     double sumOfWeights = 0;
-    for ( std::vector<double>::const_iterator iWeight = weights.begin();
-	  iWeight != weights.end(); ++iWeight ) sumOfWeights += *iWeight;
+    for ( size_t i = 0; i < weights.size(); ++i )
+	      if ( indicesForScoring.find( i ) != indicesForScoring.end() )
+		  sumOfWeights += weights[i];
 
     ProcessLogger log( numberOfDrivers, "Calculating the trip scores : " );
 
@@ -254,12 +262,14 @@ DriverDataProcessing::scoreTrips( std::vector< std::tuple< long, long, double > 
 	    }
 	    else {
 		for ( size_t iScore = 0; iScore < scoresFromDriver.size(); ++ iScore ) {
+		    if ( indicesForScoring.find( iScore ) == indicesForScoring.end() )
+			continue;
 		    double probabilityFromDriver = scoresFromDriver[iScore];
 		    if ( probabilityFromDriver == 0 ) {
 			std::ostringstream os;
 			os << "Driver " << iTripMetrics->driverId << ", trip " << iTripMetrics->tripId << ", metric " << iScore << " : Probability from driver found 0!!!";
 			throw std::runtime_error( os.str() );
-		}
+		    }
 		    double probabilityFromReference = scoresFromReference[iScore];
 		    score += weights[iScore] * probabilityFromDriver / ( probabilityFromDriver + probabilityFromReference );
 		}
