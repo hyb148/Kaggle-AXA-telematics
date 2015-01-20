@@ -196,7 +196,7 @@ TripMetricsReference::createUsingReference( const std::vector< TripMetrics >& me
     newReference->m_lowPointsRatio /= metricsData.size();
 
     // Fewer bins for these histograms!
-    const long numberOfBins = 35;
+    const long numberOfBins = 30;
     
     // Now create the histograms
     newReference->m_histograms.reserve( numberOfMetricsVariables );
