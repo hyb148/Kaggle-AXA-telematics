@@ -4,6 +4,7 @@
 #include <vector>
 #include <utility>
 
+
 double
 innerProduct( const std::pair<float,float>& v1,
 	      const std::pair<float,float>& v2 );
@@ -38,5 +39,8 @@ findQuantiles( std::vector<double>& values );
 double
 r2_correlation( const std::vector<double>& x,
 		const std::vector<double>& y );
+
+std::vector< double >
+vfft( const std::vector<double>& data );
 
 #endif

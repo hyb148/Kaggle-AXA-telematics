@@ -3,6 +3,8 @@
 #include "Utilities.h"
 #include <cmath>
 
+static const double pi = std::atan( 1.0 ) * 4;
+
 
 Trip::Trip( int tripId):
   m_tripId( tripId ),
@@ -447,7 +449,6 @@ Trip&
 Trip::removeAccuteAngleSegments( const std::vector< std::pair< float, float > >& tripData,
 				 std::vector< std::vector< std::pair< float, float > > >& segments )
 {
-    const double pi = std::atan( 1.0 ) * 4;
     const double maxAngle = 100 * pi / 180.0; // 100 degrees turn in a second!
 
     size_t segentStartingIndex = 0;
@@ -549,3 +550,78 @@ Trip::directionQuantiles() const
 }
 
 
+std::vector< double >
+Trip::rollingFFT( long sampleSize ) const
+{
+    const_cast<Trip&>(*this).generateSegments();
+
+    long numberOfTransformations = 0;
+    long transformationSize = static_cast<long>( std::floor( (sampleSize - 1 ) / 2 ) ) + (sampleSize+1)%2;
+
+    std::vector< double > result( transformationSize, 0 );
+
+    // Loop over the segments
+    for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
+	  iSegment != m_segments.end(); ++iSegment ) {
+
+	// Get the speed values
+	std::vector<double> segmentValues = (*iSegment)->speedValues();
+
+	size_t startingIndex = 0;
+	size_t endIndex = sampleSize;
+	while ( endIndex <= segmentValues.size() ) {
+	    std::vector<double> sample( segmentValues.begin() + startingIndex, segmentValues.begin() + endIndex );
+	    std::vector<double> fftTransformation = vfft( sample );
+	    for ( size_t i = 0; i < transformationSize; ++i ) result[i] += fftTransformation[i];
+	    ++startingIndex;
+	    ++endIndex;
+	    ++numberOfTransformations;
+	}
+    }
+
+    if ( numberOfTransformations == 0 )  // Return an empty vector
+	return std::vector< double >();
+
+    for ( size_t i = 0; i < transformationSize; ++i ) result[i] /= numberOfTransformations;
+    
+    return result;
+}
+
+
+
+std::vector< double >
+Trip::rollingFFT_direction( long sampleSize ) const
+{
+    const_cast<Trip&>(*this).generateSegments();
+
+    long numberOfTransformations = 0;
+    long transformationSize = static_cast<long>( std::floor( (sampleSize - 1 ) / 2 ) ) + (sampleSize+1)%2;
+
+    std::vector< double > result( transformationSize, 0 );
+
+    // Loop over the segments
+    for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
+	  iSegment != m_segments.end(); ++iSegment ) {
+
+	// Get the speed values
+	std::vector<double> segmentValues = (*iSegment)->angularValues();
+
+	size_t startingIndex = 0;
+	size_t endIndex = sampleSize;
+	while ( endIndex <= segmentValues.size() ) {
+	    std::vector<double> sample( segmentValues.begin() + startingIndex, segmentValues.begin() + endIndex );
+	    std::vector<double> fftTransformation = vfft( sample );
+	    for ( size_t i = 0; i < transformationSize; ++i ) result[i] += fftTransformation[i];
+	    ++startingIndex;
+	    ++endIndex;
+	    ++numberOfTransformations;
+	}
+    }
+
+    if ( numberOfTransformations == 0 )  // Return an empty vector
+	return std::vector< double >();
+
+    for ( size_t i = 0; i < transformationSize; ++i ) result[i] /= numberOfTransformations;
+    
+    return result;
+}

@@ -59,6 +59,12 @@ public:
     
     // Returns the 5th, 25th, 50th, 75th and 95th quantile of the direction distribution
     std::vector< double > directionQuantiles() const;
+
+    // Returns the averaged out FFT transformation of the speed values
+    std::vector< double > rollingFFT( long sampleSize = 20 ) const;
+    
+    // Returns the averaged out FFT transformation of the direction values
+    std::vector< double > rollingFFT_direction( long sampleSize = 20 ) const;
     
     // Returns the raw data
     inline const std::vector< std::pair< float, float > >& rawData() const { return m_rawData; }

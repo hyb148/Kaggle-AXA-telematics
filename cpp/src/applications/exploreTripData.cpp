@@ -88,6 +88,30 @@ public:
             }
 	    outputPipe.close();
         }
+        else if ( command == "fft" ) {
+	    const Trip* trip = this->trip( driverId, tripId );
+	    if ( trip == 0 ) return false;
+            std::ofstream outputPipe( m_outputFileName );
+	    std::vector<double> values = trip->rollingFFT();
+            outputPipe << values.size() << std::endl;
+            for ( std::vector< double >::const_iterator iValue = values.begin();
+                 iValue != values.end(); ++iValue ) {
+                outputPipe << *iValue << std::endl;
+            }
+	    outputPipe.close();
+	}
+        else if ( command == "fft_direction" ) {
+	    const Trip* trip = this->trip( driverId, tripId );
+	    if ( trip == 0 ) return false;
+            std::ofstream outputPipe( m_outputFileName );
+	    std::vector<double> values = trip->rollingFFT_direction();
+            outputPipe << values.size() << std::endl;
+            for ( std::vector< double >::const_iterator iValue = values.begin();
+                 iValue != values.end(); ++iValue ) {
+                outputPipe << *iValue << std::endl;
+            }
+	    outputPipe.close();
+	}
         else if ( command == "speed" ) {
 	    const Trip* trip = this->trip( driverId, tripId );
 	    if ( trip == 0 ) return false;
