@@ -25,6 +25,9 @@ public:
     // The speed, acceleration and direction values as associated tuples
     std::vector< std::tuple<double,double,double> > speedAccelerationDirectionValues() const;
     
+    // The speed x acceleration values
+    std::vector<double> speedXaccelerationValues() const;
+    
     // The distance travelled
     double travelLength() const;
     

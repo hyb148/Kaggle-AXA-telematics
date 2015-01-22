@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <utility>
+#include <valarray>
 
 
 double
@@ -40,7 +41,7 @@ double
 r2_correlation( const std::vector<double>& x,
 		const std::vector<double>& y );
 
-std::vector< double >
+std::valarray< double >
 vfft( const std::vector<double>& data );
 
 #endif

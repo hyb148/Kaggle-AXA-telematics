@@ -71,6 +71,32 @@ Segment::accelerationValues() const
 }
 
 
+std::vector< double >
+Segment::speedXaccelerationValues() const
+{
+    std::vector< double > values;
+    if ( m_velocityVectors.size() < 2 ) return values;
+    values.reserve( m_velocityVectors.size() - 1 );
+    
+    const std::pair<float,float>& v_p = m_velocityVectors.front();
+    double v_previous = std::sqrt( std::pow(v_p.first,2) + std::pow(v_p.second, 2) );
+    
+    for (std::vector< std::pair<float,float> >::const_iterator i = m_velocityVectors.begin() + 1;
+         i != m_velocityVectors.end(); ++i ) {
+        const std::pair<float,float>& v = *i;
+        const double v_current = std::sqrt( std::pow(v.first,2) + std::pow(v.second, 2) );
+        const double acceleration = v_current - v_previous;
+        
+        values.push_back( v_current * acceleration );
+        
+        v_previous = v_current;
+    }
+    
+    return values;
+}
+
+
+
 
 static double
 angleAmongVectors( const std::pair<float,float>& v1,

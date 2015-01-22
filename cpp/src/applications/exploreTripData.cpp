@@ -10,9 +10,9 @@ class CppToPythonPipe
 {
 public:
     explicit CppToPythonPipe( const std::string& inputFileName,
-			      const std::string& outputFileName,
-			      std::vector< std::auto_ptr<Driver> >& drivers,
-			      DriverDataProcessing& dataProcessing ):
+                             const std::string& outputFileName,
+                             std::vector< std::auto_ptr<Driver> >& drivers,
+                             DriverDataProcessing& dataProcessing ):
     m_inputFileName(inputFileName),
     m_outputFileName(outputFileName),
     m_drivers( drivers ),
@@ -20,25 +20,25 @@ public:
     {}
     
     virtual ~CppToPythonPipe() {}
-
+    
 private:
     Driver* driver( int driverId ) const {
-	std::vector< std::auto_ptr<Driver> >::iterator iDriver  = m_drivers.begin();
-	while (  iDriver != m_drivers.end() ) {
-	    if ( (*iDriver)->id() == driverId ) break;
-	    ++iDriver;
-	}
-	if (iDriver == m_drivers.end() ) return 0;
-	return iDriver->get();
+        std::vector< std::auto_ptr<Driver> >::iterator iDriver  = m_drivers.begin();
+        while (  iDriver != m_drivers.end() ) {
+            if ( (*iDriver)->id() == driverId ) break;
+            ++iDriver;
+        }
+        if (iDriver == m_drivers.end() ) return 0;
+        return iDriver->get();
     }
-
+    
     const Trip* trip( int driverId, int tripId ) const {
-	Driver* driver = this->driver( driverId );
-	if ( driver == 0 ) return 0;
-	const std::vector<Trip>& trips = driver->trips();
-	std::vector<Trip>::const_iterator iTrip = std::find( trips.begin(), trips.end(), tripId );
-	if (iTrip == trips.end() ) return 0;
-	return &(*iTrip);
+        Driver* driver = this->driver( driverId );
+        if ( driver == 0 ) return 0;
+        const std::vector<Trip>& trips = driver->trips();
+        std::vector<Trip>::const_iterator iTrip = std::find( trips.begin(), trips.end(), tripId );
+        if (iTrip == trips.end() ) return 0;
+        return &(*iTrip);
     }
     
 public:
@@ -48,7 +48,7 @@ public:
         std::memset(buf, 0, sizeof(buf));
         inputPipe.read( buf, sizeof(buf) );
         inputPipe.close();
-
+        
         std::istringstream isInput( buf );
         
         std::string command;
@@ -59,11 +59,11 @@ public:
         
         int driverId, tripId;
         isInput >> driverId >> tripId;
-
-        // Depending on the command name we can decide what data to send to the pipe
+        
+            // Depending on the command name we can decide what data to send to the pipe
         if ( command == "rawdata" ) {
-	    const Trip* trip = this->trip( driverId, tripId );
-	    if ( trip == 0 ) return false;            
+            const Trip* trip = this->trip( driverId, tripId );
+            if ( trip == 0 ) return false;
             std::ofstream outputPipe( m_outputFileName );
             const std::vector< std::pair< float, float > >& rawData = trip->rawData();
             outputPipe << rawData.size() << std::endl;
@@ -72,8 +72,8 @@ public:
             outputPipe.close();
         }
         else if ( command == "segments" ) {
-	    const Trip* trip = this->trip( driverId, tripId );
-	    if ( trip == 0 ) return false;            
+            const Trip* trip = this->trip( driverId, tripId );
+            if ( trip == 0 ) return false;
             std::ofstream outputPipe( m_outputFileName );
             const std::vector< Segment* >& segments = trip->segments();
             outputPipe << segments.size() << std::endl;
@@ -83,118 +83,116 @@ public:
                 std::vector< std::pair<float,float> > segmentRawData = segment.dataPoints();
                 outputPipe << segmentRawData.size() << std::endl;
                 for ( std::vector< std::pair< float, float > >::const_iterator iPoint = segmentRawData.begin();
-		      iPoint != segmentRawData.end(); ++iPoint )
+                     iPoint != segmentRawData.end(); ++iPoint )
                     outputPipe << iPoint->first << " " << iPoint->second << std::endl;
             }
-	    outputPipe.close();
+            outputPipe.close();
         }
         else if ( command == "fft" ) {
-	    const Trip* trip = this->trip( driverId, tripId );
-	    if ( trip == 0 ) return false;
+            const Trip* trip = this->trip( driverId, tripId );
+            if ( trip == 0 ) return false;
             std::ofstream outputPipe( m_outputFileName );
-	    std::vector<double> values = trip->rollingFFT();
+            std::valarray<double> values = trip->rollingFFT();
             outputPipe << values.size() << std::endl;
-            for ( std::vector< double >::const_iterator iValue = values.begin();
-                 iValue != values.end(); ++iValue ) {
-                outputPipe << *iValue << std::endl;
+            for ( size_t iv = 0; iv < values.size(); ++iv ) {
+                outputPipe << values[iv] << std::endl;
             }
-	    outputPipe.close();
-	}
+            outputPipe.close();
+        }
         else if ( command == "fft_direction" ) {
-	    const Trip* trip = this->trip( driverId, tripId );
-	    if ( trip == 0 ) return false;
+            const Trip* trip = this->trip( driverId, tripId );
+            if ( trip == 0 ) return false;
             std::ofstream outputPipe( m_outputFileName );
-	    std::vector<double> values = trip->rollingFFT_direction();
+            std::valarray<double> values = trip->rollingFFT_direction();
             outputPipe << values.size() << std::endl;
-            for ( std::vector< double >::const_iterator iValue = values.begin();
-                 iValue != values.end(); ++iValue ) {
-                outputPipe << *iValue << std::endl;
+            for ( size_t iv = 0; iv < values.size(); ++iv ) {
+                outputPipe << values[iv] << std::endl;
             }
-	    outputPipe.close();
-	}
+            outputPipe.close();
+        }
         else if ( command == "speed" ) {
-	    const Trip* trip = this->trip( driverId, tripId );
-	    if ( trip == 0 ) return false;
+            const Trip* trip = this->trip( driverId, tripId );
+            if ( trip == 0 ) return false;
             std::ofstream outputPipe( m_outputFileName );
-	    std::vector<double> values = trip->speedValues();
+            std::vector<double> values = trip->speedValues();
             outputPipe << values.size() << std::endl;
             for ( std::vector< double >::const_iterator iValue = values.begin();
                  iValue != values.end(); ++iValue ) {
                 outputPipe << *iValue << std::endl;
             }
-	    outputPipe.close();
+            outputPipe.close();
         }
-	else if ( command == "acceleration" ) {
-	    const Trip* trip = this->trip( driverId, tripId );
-	    if ( trip == 0 ) return false;
+        else if ( command == "acceleration" ) {
+            const Trip* trip = this->trip( driverId, tripId );
+            if ( trip == 0 ) return false;
             std::ofstream outputPipe( m_outputFileName );
-	    std::vector<double> values = trip->accelerationValues();
+            std::vector<double> values = trip->accelerationValues();
             outputPipe << values.size() << std::endl;
             for ( std::vector< double >::const_iterator iValue = values.begin();
                  iValue != values.end(); ++iValue ) {
                 outputPipe << *iValue << std::endl;
             }
-	    outputPipe.close();
+            outputPipe.close();
         }
-	else if ( command == "direction" ) {
-	    const Trip* trip = this->trip( driverId, tripId );
-	    if ( trip == 0 ) return false;            
+        else if ( command == "direction" ) {
+            const Trip* trip = this->trip( driverId, tripId );
+            if ( trip == 0 ) return false;
             std::ofstream outputPipe( m_outputFileName );
-	    std::vector<double> values = trip->directionValues();
+            std::vector<double> values = trip->directionValues();
             outputPipe << values.size() << std::endl;
             for ( std::vector< double >::const_iterator iValue = values.begin();
                  iValue != values.end(); ++iValue ) {
                 outputPipe << *iValue << std::endl;
             }
-	    outputPipe.close();
+            outputPipe.close();
         }
-	else if ( command == "speedAccelerationDirection" ) {
-	    const Trip* trip = this->trip( driverId, tripId );
-	    if ( trip == 0 ) return false;            
+        else if ( command == "speedAccelerationDirection" ) {
+            const Trip* trip = this->trip( driverId, tripId );
+            if ( trip == 0 ) return false;
             std::ofstream outputPipe( m_outputFileName );
-	    std::vector< std::tuple<double,double,double> > values = trip->speedAccelerationDirectionValues();
+            std::vector< std::tuple<double,double,double> > values = trip->speedAccelerationDirectionValues();
             outputPipe << values.size() << std::endl;
             for ( std::vector< std::tuple<double,double,double> >::const_iterator iValue = values.begin();
                  iValue != values.end(); ++iValue ) {
                 outputPipe << std::get<0>( *iValue) << " " << std::get<1>( *iValue) << " " << std::get<2>( *iValue) << std::endl;
             }
-	    outputPipe.close();
+            outputPipe.close();
         }
-	else if ( command == "speedQuantiles" ) {
-	    const Trip* trip = this->trip( driverId, tripId );
-	    if ( trip == 0 ) return false;            
+        else if ( command == "speedQuantiles" ) {
+            const Trip* trip = this->trip( driverId, tripId );
+            if ( trip == 0 ) return false;
             std::ofstream outputPipe( m_outputFileName );
-	    std::vector<double> values = trip->speedQuantiles();
+            std::vector<double> values = trip->speedQuantiles();
             outputPipe << values.size() << std::endl;
             for ( std::vector< double >::const_iterator iValue = values.begin();
                  iValue != values.end(); ++iValue ) {
                 outputPipe << *iValue << std::endl;
             }
-	    outputPipe.close();
+            outputPipe.close();
         }
-	else if ( command == "accelerationQuantiles" ) {
-	    const Trip* trip = this->trip( driverId, tripId );
-	    if ( trip == 0 ) return false;            
+        else if ( command == "accelerationQuantiles" ) {
+            const Trip* trip = this->trip( driverId, tripId );
+            if ( trip == 0 ) return false;
             std::ofstream outputPipe( m_outputFileName );
-	    std::vector<double> values = trip->accelerationQuantiles();
+            std::vector<double> values = trip->accelerationQuantiles();
             outputPipe << values.size() << std::endl;
             for ( std::vector< double >::const_iterator iValue = values.begin();
                  iValue != values.end(); ++iValue ) {
                 outputPipe << *iValue << std::endl;
             }
-	    outputPipe.close();
+            outputPipe.close();
         }
-	else if ( command == "directionQuantiles" ) {
-	    const Trip* trip = this->trip( driverId, tripId );
-	    if ( trip == 0 ) return false;            
+        else if ( command == "directionQuantiles" ) {
+            const Trip* trip = this->trip( driverId, tripId );
+            if ( trip == 0 ) return false;
             std::ofstream outputPipe( m_outputFileName );
-	    std::vector<double> values = trip->directionQuantiles();
+            std::vector<double> values = trip->directionQuantiles();
             outputPipe << values.size() << std::endl;
             for ( std::vector< double >::const_iterator iValue = values.begin();
                  iValue != values.end(); ++iValue ) {
                 outputPipe << *iValue << std::endl;
             }
-	    outputPipe.close();
+            outputPipe.close();
         }
         else if ( command == "drivers") {
             std::ofstream outputPipe( m_outputFileName );
@@ -203,9 +201,9 @@ public:
                 outputPipe << (*iDriver)->id() << std::endl;
             outputPipe.close();
         }
-        else if ( command == "trips") {            
+        else if ( command == "trips") {
             Driver* driver = this->driver( driverId );
-	    if ( driver == 0 ) return false;
+            if ( driver == 0 ) return false;
             const std::vector<Trip>& trips = driver->trips();
             
             std::ofstream outputPipe( m_outputFileName );
@@ -214,52 +212,56 @@ public:
                 outputPipe << iTrip->id() << std::endl;
             outputPipe.close();
         }
-	else if ( command == "travelDuration" ) {
-	    const Trip* trip = this->trip( driverId, tripId );
-	    if ( trip == 0 ) return false;            
+        else if ( command == "travelDuration" ) {
+            const Trip* trip = this->trip( driverId, tripId );
+            if ( trip == 0 ) return false;
             std::ofstream outputPipe( m_outputFileName );
-	    outputPipe << trip->travelDuration() << std::endl;
-	    outputPipe.close();
-	}
-	else if ( command == "travelLength" ) {
-	    const Trip* trip = this->trip( driverId, tripId );
-	    if ( trip == 0 ) return false;            
+            outputPipe << trip->travelDuration() << std::endl;
+            outputPipe.close();
+        }
+        else if ( command == "travelLength" ) {
+            const Trip* trip = this->trip( driverId, tripId );
+            if ( trip == 0 ) return false;
             std::ofstream outputPipe( m_outputFileName );
-	    outputPipe << trip->travelLength() << std::endl;
-	    outputPipe.close();
-	}
-	else if ( command == "distanceOfEndPoint" ) {
-	    const Trip* trip = this->trip( driverId, tripId );
-	    if ( trip == 0 ) return false;            
+            outputPipe << trip->travelLength() << std::endl;
+            outputPipe.close();
+        }
+        else if ( command == "distanceOfEndPoint" ) {
+            const Trip* trip = this->trip( driverId, tripId );
+            if ( trip == 0 ) return false;
             std::ofstream outputPipe( m_outputFileName );
-	    outputPipe << trip->distanceOfEndPoint() << std::endl;
-	    outputPipe.close();
-	}
-	else if ( command == "allTripMetrics" ) {
-	    std::vector< TripMetrics > outputData;
-	    m_dataProcessing.produceTripMetrics( outputData );
-	    std::ofstream outputPipe( m_outputFileName );
-	    TripMetrics::variableNames( outputPipe ) << std::endl;
-	    outputPipe << outputData.size() << std::endl;
-	    for ( std::vector< TripMetrics >::const_iterator iTripData = outputData.begin();
-		  iTripData != outputData.end(); ++iTripData ) {
-		outputPipe << *iTripData << std::endl;
-	    }
-	    outputPipe.close();
-	}
-	else if ( command == "driverTripMetrics" ) {
-	    Driver* driver = this->driver( driverId );
-	    if ( driver == 0 ) return false;
-	    std::vector< TripMetrics > outputData = driver->tripMetrics();
-	    std::ofstream outputPipe( m_outputFileName );
-	    TripMetrics::variableNames( outputPipe ) << std::endl;
-	    outputPipe << outputData.size() << std::endl;
-	    for ( std::vector< TripMetrics >::const_iterator iTripData = outputData.begin();
-		  iTripData != outputData.end(); ++iTripData ) {
-		outputPipe << *iTripData << std::endl;
-	    }
-	    outputPipe.close();
-	}
+            outputPipe << trip->distanceOfEndPoint() << std::endl;
+            outputPipe.close();
+        }
+        else if ( command == "allTripMetrics" ) {
+            std::vector< TripMetrics > outputData;
+            m_dataProcessing.produceTripMetrics( outputData );
+            
+            std::ofstream outputPipe( m_outputFileName );
+            outputData.front().writeDescriptions( outputPipe ) << std::endl;
+            
+            outputPipe << outputData.size() << std::endl;
+            for ( std::vector< TripMetrics >::const_iterator iTripData = outputData.begin();
+                 iTripData != outputData.end(); ++iTripData ) {
+                outputPipe << *iTripData << std::endl;
+            }
+            outputPipe.close();
+        }
+        else if ( command == "driverTripMetrics" ) {
+            Driver* driver = this->driver( driverId );
+            if ( driver == 0 ) return false;
+            std::vector< TripMetrics > outputData = driver->tripMetrics();
+
+            std::ofstream outputPipe( m_outputFileName );
+            outputData.front().writeDescriptions( outputPipe ) << std::endl;
+            
+            outputPipe << outputData.size() << std::endl;
+            for ( std::vector< TripMetrics >::const_iterator iTripData = outputData.begin();
+                 iTripData != outputData.end(); ++iTripData ) {
+                outputPipe << *iTripData << std::endl;
+            }
+            outputPipe.close();
+        }
         else {
             std::cout << "Unknown Command: \"" << command << "\"" << std::endl;
             return false;
@@ -285,9 +287,9 @@ int main( int, char**) {
         
         std::cout << "Loading and preprocessing the data" << std::endl;
         std::vector< std::auto_ptr<Driver> > drivers = dataProcessing.loadAllData();
-
+        
         std::cout << "Ready for receing commands." << std::endl;
-
+        
         CppToPythonPipe pipe( "pythontocpppipe", "cpptopythonpipe", drivers, dataProcessing );
         
         while( pipe.processCommands() );

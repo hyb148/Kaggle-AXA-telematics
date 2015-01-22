@@ -23,7 +23,7 @@ public:
 
     // Returns the trip metrics
     std::vector< TripMetrics > tripMetrics() const;
-    
+
     // Operator for searching in a vector
     inline bool operator==( const Driver& rhs ) const { return this->id() == rhs.id(); }
     inline bool operator==( int rhs ) const { return this->id() == rhs; }

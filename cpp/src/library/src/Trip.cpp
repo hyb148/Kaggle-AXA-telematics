@@ -44,98 +44,112 @@ Trip::setTripData( const std::vector< std::pair<float,float> >& data )
 }
 
 
+long
+Trip::numberOfValidPoints() const
+{
+    const_cast<Trip&>(*this).generateSegments();
+    long numberOfPoints = 0;
+    for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
+         iSegment != m_segments.end(); ++iSegment ) {
+        numberOfPoints += (*iSegment)->numberOfDataPoints();
+    }
+    return numberOfPoints;
+}
+
 
 TripMetrics
 Trip::metrics() const
 {
-    TripMetrics metrics;
+    static const long numberOfTripMetrics= 14;
+
+    // The limits on the metrics
+    static const long minimumNumberOfPoints = 20;
+    static const long maxTripDuration = 3160;
+    static const double maxTripLength = 100000;
+    
+    static const double maxSpeed = 40;
+    static const double maxAcceleration = 5;
+    static const double maxSpeedXacceleration = maxSpeed * maxAcceleration;
+    static const double maxDirection = 1.5;
+    static const double maxTotalDirectionChange = 1;
+
+    
     const_cast<Trip&>(*this).generateSegments();
-
-    // Set the trip id
-    metrics.tripId = m_tripId;
-
+    
+    std::vector<double> metricsValues( numberOfTripMetrics, NAN );
+    
     // Check if this is a zero segment trip
     if ( m_segments.size() == 0 ) {
-	metrics.zeroSegments = 1;
-	return metrics;
+        metricsValues[0] = 1;
     }
-
-    // Check the number of points
-    long numberOfPoints = 0;
-    for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
-	  iSegment != m_segments.end(); ++iSegment ) {
-	numberOfPoints += (*iSegment)->numberOfDataPoints();
-    }
-    if ( numberOfPoints < 20 ) {
-	metrics.lessThan20Points = 1;
-	return metrics;
-    }
-    
-    
-    metrics.travelDuration = this->travelDuration();
-    metrics.travelLength = this->travelLength();
-
-    std::vector<double> speedValues;
-    speedValues.reserve( m_rawData.size() - 2 );
-    std::vector<double> accelerationValues;
-    accelerationValues.reserve( m_rawData.size() - 2 );
-    std::vector<double> directionValues;
-    directionValues.reserve( m_rawData.size() - 2 );
-    std::vector<double> speedXaccelerationValues;
-    speedXaccelerationValues.reserve( m_rawData.size() - 2 );
-
-    // Direction noise threshold : 2 degrees
-    const double directionNoiseThreshold = 0.035;
-    double totalNegativeDirection = 0;
-    double totalPositiveDirection = 0;
-    
-    for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
-	  iSegment != m_segments.end(); ++iSegment ) {
-	std::vector< std::tuple<double,double,double> > segmentValues = (*iSegment)->speedAccelerationDirectionValues();
-	for ( std::vector< std::tuple<double,double,double> >::const_iterator iValue = segmentValues.begin();
-	      iValue != segmentValues.end(); ++iValue ) {
-	    double speed = std::get<0>( *iValue );
-	    speedValues.push_back( speed );
-	    double acceleration = std::get<1>( *iValue );
-	    accelerationValues.push_back( acceleration );
-	    double direction = std::get<2>( *iValue );
-	    directionValues.push_back( direction );
-	    speedXaccelerationValues.push_back( speed * acceleration );
-	    if ( direction > directionNoiseThreshold ) totalPositiveDirection += direction;
-	    else if ( direction < -directionNoiseThreshold ) totalNegativeDirection -= direction;
-	}
-    }
-
-    if ( metrics.travelLength > 0 ) {
-	metrics.negativeTurns = totalNegativeDirection / metrics.travelLength;
-	metrics.positiveTurns = totalPositiveDirection / metrics.travelLength;
+    else {
+        metricsValues[0] = 0;
+        if ( this->numberOfValidPoints() < minimumNumberOfPoints ) {
+            metricsValues[1] = 1;
+        }
+        else {
+            metricsValues[1] = 0;
+            long travelDuration = this->travelDuration();
+            if ( travelDuration < maxTripDuration ) metricsValues[2] = std::log10( 1 + travelDuration );
+            double tripLength = this->travelLength();
+            if ( tripLength < maxTripLength ) metricsValues[3] = std::log10( 1 + tripLength );
+            
+            // Speed percentiles
+            std::vector<double> percentiles = this->speedQuantiles();
+            for (size_t i = 1; i <= 4; ++i )
+                if ( percentiles[i] < maxSpeed ) metricsValues[i+3] = std::log10( 1 + percentiles[i] );
+            
+            // Acceleration percentiles
+            percentiles = this->accelerationQuantiles();
+            double meanPercentile = 0.5 * ( std::abs( percentiles[0] ) + std::abs( percentiles[4] ) );
+            if ( meanPercentile < maxAcceleration ) metricsValues[8] = std::log10( 1 + meanPercentile );
+            meanPercentile = 0.5 * ( std::abs( percentiles[1] ) + std::abs( percentiles[3] ) );
+            if ( meanPercentile < ( maxAcceleration / 2 ) ) metricsValues[9] = std::log10( 1 + meanPercentile );
+            
+            // Direction percentiles
+            percentiles = this->directionQuantiles();
+            meanPercentile = 0.5 * ( std::abs( percentiles[0] ) + std::abs( percentiles[4] ) );
+            if ( meanPercentile < maxDirection ) metricsValues[10] = std::log10( 1 + 100 * meanPercentile );
+            
+            // Speed x Acceleration percentiles
+            std::vector<double> values = this->speedXaccelerationValues();
+            percentiles = findQuantiles( values );
+            meanPercentile = 0.5 * ( std::abs( percentiles[0] ) + std::abs( percentiles[4] ) );
+            if ( meanPercentile < maxSpeedXacceleration ) metricsValues[11] = std::log10( 1 + meanPercentile );
+            meanPercentile = 0.5 * ( std::abs( percentiles[1] ) + std::abs( percentiles[3] ) );
+            if ( meanPercentile < maxSpeedXacceleration ) metricsValues[12] = std::log10( 1 + meanPercentile );
+            
+            // Total turns
+            double totalDirectionChange = this->totalDirectionChange();
+            if ( totalDirectionChange < maxTotalDirectionChange ) metricsValues[13] = std::log10( 0.01 + totalDirectionChange );
+            
+            // FFT transformation components
+            
+        }
     }
     
-    // Calculate the percentiles.
-    std::vector<double> speedPercentiles = findQuantiles( speedValues );
-    metrics.speed_p25 = speedPercentiles[1];
-    metrics.speed_p50 = speedPercentiles[2];
-    metrics.speed_p75 = speedPercentiles[3];
-    metrics.speed_p95 = speedPercentiles[4];
-    std::vector<double> accelerationPercentiles = findQuantiles( accelerationValues );
-    metrics.acceleration_p05 = accelerationPercentiles[0];
-    metrics.acceleration_p25 = accelerationPercentiles[1];
-    metrics.acceleration_p75 = accelerationPercentiles[3];
-    metrics.acceleration_p95 = accelerationPercentiles[4];
-    std::vector<double> directionPercentiles = findQuantiles( directionValues );
-    metrics.direction_p05 = directionPercentiles[0];
-    metrics.direction_p25 = directionPercentiles[1];
-    metrics.direction_p75 = directionPercentiles[3];
-    metrics.direction_p95 = directionPercentiles[4];
-    std::vector<double> speedXaccelerationPercentiles = findQuantiles( speedXaccelerationValues );
-    metrics.speedXacceleration_p05 = speedXaccelerationPercentiles[0];
-    metrics.speedXacceleration_p25 = speedXaccelerationPercentiles[1];
-    metrics.speedXacceleration_p75 = speedXaccelerationPercentiles[3];
-    metrics.speedXacceleration_p95 = speedXaccelerationPercentiles[4];
-
-    return metrics;
+    return TripMetrics( m_tripId,
+                        metricsValues );
 }
 
+
+double
+Trip::totalDirectionChange() const
+{
+    const double directionNoiseThreshold = 0.035; // 2 degrees
+    std::vector<double> values = this->directionValues();
+    
+    double result = 0;
+    for ( std::vector<double>::const_iterator iValue = values.begin();
+         iValue != values.end(); ++iValue ) {
+        const double direction = std::abs( *iValue );
+        if ( direction > directionNoiseThreshold ) result += direction;
+    }
+    
+    const double travelLength = this->travelLength();
+    if ( travelLength == 0 ) return 0;
+    else return result / travelLength;
+}
 
 
 double
@@ -203,6 +217,24 @@ Trip::accelerationValues() const
     return accelerationValues;
 }
 
+std::vector<double>
+Trip::speedXaccelerationValues() const
+{
+    const_cast<Trip&>(*this).generateSegments();
+    std::vector<double> speedXaccelerationValues;
+    speedXaccelerationValues.reserve( m_rawData.size() - 2 );
+    
+    for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
+         iSegment != m_segments.end(); ++iSegment ) {
+        std::vector<double> segmentValues = (*iSegment)->speedXaccelerationValues();
+        for ( std::vector<double>::const_iterator iValue = segmentValues.begin();
+             iValue != segmentValues.end(); ++iValue )
+            speedXaccelerationValues.push_back( *iValue );
+    }
+    
+    speedXaccelerationValues.shrink_to_fit();
+    return speedXaccelerationValues;
+}
 
 
 std::vector<double>
@@ -235,10 +267,10 @@ Trip::speedAccelerationDirectionValues() const
 
     for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
 	  iSegment != m_segments.end(); ++iSegment ) {
-	std::vector< std::tuple<double,double,double> > segmentValues = (*iSegment)->speedAccelerationDirectionValues();
-	for ( std::vector< std::tuple<double,double,double> >::const_iterator iValue = segmentValues.begin();
+        std::vector< std::tuple<double,double,double> > segmentValues = (*iSegment)->speedAccelerationDirectionValues();
+        for ( std::vector< std::tuple<double,double,double> >::const_iterator iValue = segmentValues.begin();
 	      iValue != segmentValues.end(); ++iValue )
-	    speedAccelerationDirectionValues.push_back( *iValue );
+            speedAccelerationDirectionValues.push_back( *iValue );
     }
 
     return speedAccelerationDirectionValues;
@@ -550,7 +582,7 @@ Trip::directionQuantiles() const
 }
 
 
-std::vector< double >
+std::valarray< double >
 Trip::rollingFFT( long sampleSize ) const
 {
     const_cast<Trip&>(*this).generateSegments();
@@ -558,7 +590,7 @@ Trip::rollingFFT( long sampleSize ) const
     long numberOfTransformations = 0;
     long transformationSize = static_cast<long>( std::floor( (sampleSize - 1 ) / 2 ) ) + (sampleSize+1)%2;
 
-    std::vector< double > result( transformationSize, 0 );
+    std::valarray< double > result( 0.0, transformationSize );
 
     // Loop over the segments
     for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
@@ -571,8 +603,7 @@ Trip::rollingFFT( long sampleSize ) const
 	size_t endIndex = sampleSize;
 	while ( endIndex <= segmentValues.size() ) {
 	    std::vector<double> sample( segmentValues.begin() + startingIndex, segmentValues.begin() + endIndex );
-	    std::vector<double> fftTransformation = vfft( sample );
-	    for ( size_t i = 0; i < transformationSize; ++i ) result[i] += fftTransformation[i];
+	    result += vfft( sample );
 	    ++startingIndex;
 	    ++endIndex;
 	    ++numberOfTransformations;
@@ -580,16 +611,16 @@ Trip::rollingFFT( long sampleSize ) const
     }
 
     if ( numberOfTransformations == 0 )  // Return an empty vector
-	return std::vector< double >();
+	return std::valarray< double >();
 
-    for ( size_t i = 0; i < transformationSize; ++i ) result[i] /= numberOfTransformations;
+    for (size_t i = 0; i < result.size(); ++i ) result[i] /= numberOfTransformations;
     
     return result;
 }
 
 
 
-std::vector< double >
+std::valarray< double >
 Trip::rollingFFT_direction( long sampleSize ) const
 {
     const_cast<Trip&>(*this).generateSegments();
@@ -597,7 +628,7 @@ Trip::rollingFFT_direction( long sampleSize ) const
     long numberOfTransformations = 0;
     long transformationSize = static_cast<long>( std::floor( (sampleSize - 1 ) / 2 ) ) + (sampleSize+1)%2;
 
-    std::vector< double > result( transformationSize, 0 );
+    std::valarray< double > result( 0.0, transformationSize );
 
     // Loop over the segments
     for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
@@ -610,8 +641,7 @@ Trip::rollingFFT_direction( long sampleSize ) const
 	size_t endIndex = sampleSize;
 	while ( endIndex <= segmentValues.size() ) {
 	    std::vector<double> sample( segmentValues.begin() + startingIndex, segmentValues.begin() + endIndex );
-	    std::vector<double> fftTransformation = vfft( sample );
-	    for ( size_t i = 0; i < transformationSize; ++i ) result[i] += fftTransformation[i];
+	    result += std::log10( 1 + vfft( sample ) );
 	    ++startingIndex;
 	    ++endIndex;
 	    ++numberOfTransformations;
@@ -619,9 +649,9 @@ Trip::rollingFFT_direction( long sampleSize ) const
     }
 
     if ( numberOfTransformations == 0 )  // Return an empty vector
-	return std::vector< double >();
+	return std::valarray< double >();
 
-    for ( size_t i = 0; i < transformationSize; ++i ) result[i] /= numberOfTransformations;
+    for (size_t i = 0; i < result.size(); ++i ) result[i] /= numberOfTransformations;
     
     return result;
 }

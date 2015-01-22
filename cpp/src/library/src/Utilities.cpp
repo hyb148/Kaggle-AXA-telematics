@@ -2,7 +2,6 @@
 #include <cmath>
 #include <algorithm>
 #include <complex>
-#include <valarray>
 
 
 double
@@ -136,7 +135,7 @@ static void fft( std::valarray< std::complex<double> >& x )
 }
 
 
-std::vector< double >
+std::valarray< double >
 vfft( const std::vector<double>& data )
 {
     std::valarray< std::complex<double> > x( data.size() );
@@ -145,8 +144,8 @@ vfft( const std::vector<double>& data )
 
     size_t tbins = static_cast<size_t>( std::floor( (data.size() - 1 ) / 2 ) ) + (data.size()+1)%2;
 
-    std::vector<double> transformed( tbins );
-    for (size_t i = 1; i <= tbins; ++i ) transformed[i-1] = std::abs( x[i] );
+    std::valarray<double> transformed( tbins + 1 );
+    for (size_t i = 0; i <= tbins; ++i ) transformed[i] = std::abs( x[i] );
 
     return transformed;
 }

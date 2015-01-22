@@ -5,6 +5,7 @@
 #include <vector>
 #include <utility>
 #include <tuple>
+#include <valarray>
 
 class Segment;
 
@@ -44,9 +45,15 @@ public:
 
     // Returns the acceleration values
     std::vector<double> accelerationValues() const;
+    
+    // Returns the speed x acceleration values
+    std::vector<double> speedXaccelerationValues() const;
 
     // Returns the direction (angular) values
     std::vector<double> directionValues() const;
+    
+    // Returns the total direction change normalised by the travel length
+    double totalDirectionChange() const;
 
     // Returns the speed, acceleration and direction values as an assosiation
     std::vector< std::tuple<double,double,double> > speedAccelerationDirectionValues() const;
@@ -61,10 +68,10 @@ public:
     std::vector< double > directionQuantiles() const;
 
     // Returns the averaged out FFT transformation of the speed values
-    std::vector< double > rollingFFT( long sampleSize = 20 ) const;
+    std::valarray< double > rollingFFT( long sampleSize = 20 ) const;
     
     // Returns the averaged out FFT transformation of the direction values
-    std::vector< double > rollingFFT_direction( long sampleSize = 20 ) const;
+    std::valarray< double > rollingFFT_direction( long sampleSize = 20 ) const;
     
     // Returns the raw data
     inline const std::vector< std::pair< float, float > >& rawData() const { return m_rawData; }
@@ -110,6 +117,9 @@ private:
     // Removes the segments with spurious angles
     Trip& removeAccuteAngleSegments( const std::vector< std::pair< float, float > >& tripData,
 				     std::vector< std::vector< std::pair< float, float > > >& segments );
+    
+    // Returns the number of points for a minimum valid trip
+    long numberOfValidPoints() const;
 };
 
 #endif

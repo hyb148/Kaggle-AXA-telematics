@@ -3,104 +3,48 @@
 
 #include <iosfwd>
 #include <vector>
-#include <functional>
+#include <string>
+#include <valarray>
 
 // Simple structure holding some key metrics of a trip
 class TripMetrics
 {
 public:
     // Constructor
-    TripMetrics();
+    TripMetrics( long tripId,
+                 const std::vector<double>& values );
     
     // Destructor
     ~TripMetrics();
 
-    // driver id
-    long driverId;
+    // Returns the driver id
+    inline long driverId() const { return m_driverId; }
+    // Sets the driver id
+    inline TripMetrics& setDriverId( long driverId ) { m_driverId = driverId; return *this; }
 
-    // trip id
-    long tripId;
-
-    // The travel duration
-    long travelDuration;
+    // Returns the tripId
+    inline long tripId() const { return m_tripId; }
     
-    // The travel length
-    double travelLength;
-
-    // The 25th percentile of the speed distribution
-    double speed_p25;
-
-    // The median the speed distribution
-    double speed_p50;
-
-    // The 75th percentile of the speed distribution
-    double speed_p75;
-
-    // The 95th percentile of the speed distribution
-    double speed_p95;
-
-    // The 5th percentile of the acceleration distribution
-    double acceleration_p05;
-
-    // The 25th percentile of the acceleration distribution
-    double acceleration_p25;
-
-    // The 75th percentile of the acceleration distribution
-    double acceleration_p75;
-
-    // The 95th percentile of the acceleration distribution
-    double acceleration_p95;
-
-    // The 5th percentile of the direction distribution
-    double direction_p05;
-
-    // The 25th percentile of the direction distribution
-    double direction_p25;
-
-    // The 75th percentile of the direction distribution
-    double direction_p75;
-
-    // The 95th percentile of the direction distribution
-    double direction_p95;
-
-    // The 5th percentile of the speedXacceleration distribution
-    double speedXacceleration_p05;
-
-    // The 25th percentile of the speedXacceleration distribution
-    double speedXacceleration_p25;
-
-    // The 75th percentile of the speedXacceleration distribution
-    double speedXacceleration_p75;
-
-    // The 95th percentile of the speedXacceleration distribution
-    double speedXacceleration_p95;
-
-    // The total negative turns (normalised to the trip length)
-    double negativeTurns;
-
-    // The total negative turns (normalised to the trip length)
-    double positiveTurns;
-
-    // Flag weather the trip contains 0 segments
-    int zeroSegments;
-
-    // Flag weather the trip contains less than 20 points after filtering
-    int lessThan20Points;
-
-    // Returns the non-binary values as a vector of doubles
-    std::vector<double> values() const;
+    // The values
+    inline const std::vector<double>& values() const { return m_values; }
     
-    // Writes the description of the variables to an output stream
-    static std::ostream& variableNames( std::ostream& os );
-
-    // Returns a vector for the functional objects to be applied to the non-binary values
-    static std::vector< std::function<double(double)> > transformations();
-    // Returns a vector for the validity of the input value to the transformation
-    static std::vector< std::function<bool(double)> > validityChecks();
+    // Returns a vector of the metric descriptions
+    const std::vector< std::string >& descriptions() const;
+    
+    // Writes the descriptions to an output stream (space separated values)
+    std::ostream& writeDescriptions( std::ostream& out ) const;
+    
+    // Writes the values to an output stream (space separated values)
+    std::ostream& writeValues( std::ostream& out ) const;
+    
+ private:
+    long m_tripId;
+    long m_driverId;
+    std::vector<double> m_values;
+    
 };
 
 // Overloading the output stream operator
-
 std::ostream& operator<<( std::ostream& os,
 			  const TripMetrics& metrics );
 

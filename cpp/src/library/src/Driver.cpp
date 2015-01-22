@@ -26,12 +26,12 @@ std::vector< TripMetrics >
 Driver::tripMetrics() const
 {
     std::vector< TripMetrics > localMetrics;
-    localMetrics.reserve(200);
+    localMetrics.reserve( m_trips.size() );
     for ( std::vector< Trip >::const_iterator iTrip = m_trips.begin();
 	  iTrip != m_trips.end(); ++iTrip ) {
-	TripMetrics m = iTrip->metrics();
-	m.driverId = m_driverId;
-	localMetrics.push_back( m );
+        TripMetrics m = iTrip->metrics();
+        m.setDriverId( m_driverId );
+        localMetrics.push_back( m );
     }
     return localMetrics;
 }

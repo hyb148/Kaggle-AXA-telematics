@@ -8,10 +8,10 @@
 #include <mutex>
 #include <sstream>
 #include <exception>
-#include <set>
+#include <cmath>
 
 DriverDataProcessing::DriverDataProcessing( const std::string& driversDirectory ):
-  m_driversDirectory( driversDirectory )
+m_driversDirectory( driversDirectory )
 {}
 
 
@@ -20,10 +20,10 @@ DriverDataProcessing::~DriverDataProcessing()
 
 
 static void readThreadFunction( std::mutex* pinputMutex,
-                                std::list<std::string>* pdriverFiles,
-                                std::mutex* poutputMutex,
-                                std::vector< Driver* >* pdrivers,
-                                ProcessLogger* plog )
+                               std::list<std::string>* pdriverFiles,
+                               std::mutex* poutputMutex,
+                               std::vector< Driver* >* pdrivers,
+                               ProcessLogger* plog )
 {
     std::mutex& inputMutex = *pinputMutex;
     std::list<std::string>& driverFiles = *pdriverFiles;
@@ -52,11 +52,11 @@ static void readThreadFunction( std::mutex* pinputMutex,
         
         Driver* driver = new Driver( driverTripDataIO.id() );
         driver->loadTripData( driverTripDataIO.rawData() );
-	
+        
         outputMutex.lock();
         drivers.push_back( driver );
         outputMutex.unlock();
-
+        
         log.taskEnded();
     }
 }
@@ -65,7 +65,7 @@ static void readThreadFunction( std::mutex* pinputMutex,
 std::vector< std::auto_ptr<Driver> >
 DriverDataProcessing::loadAllData( int numberOfThreads ) const
 {
-    // The driver vector
+        // The driver vector
     std::vector< Driver* > drivers;
     DirectoryListing dirList( m_driversDirectory );
     std::list<std::string> driverFiles = dirList.directoryContent();
@@ -111,10 +111,10 @@ DriverDataProcessing::loadAllData( int numberOfThreads ) const
 
 static
 void metricsThreadFunction( std::mutex* pinputMutex,
-			    std::list<std::string>* pdriverFiles,
-			    std::mutex* poutputMutex,
-			    std::vector< TripMetrics >* pmetrics,
-			    ProcessLogger* plog )
+                           std::list<std::string>* pdriverFiles,
+                           std::mutex* poutputMutex,
+                           std::vector< TripMetrics >* pmetrics,
+                           ProcessLogger* plog )
 {
     std::mutex& inputMutex = *pinputMutex;
     std::list<std::string>& driverFiles = *pdriverFiles;
@@ -139,19 +139,19 @@ void metricsThreadFunction( std::mutex* pinputMutex,
         isId >> driverId;
         
         DriverTripDataIO driverTripDataIO( driverId );
-	driverTripDataIO.readDataFromBinaryFile( driverFile.substr(0,pos) );
+        driverTripDataIO.readDataFromBinaryFile( driverFile.substr(0,pos) );
         
         Driver driver( driverTripDataIO.id() );
-	driver.loadTripData( driverTripDataIO.rawData() );
-	const std::vector< Trip >& trips = driver.trips();
-
-	std::vector< TripMetrics > localMetrics = driver.tripMetrics();
-
-	outputMutex.lock();
-	for ( std::vector< TripMetrics >::const_iterator iMetrics = localMetrics.begin();
-	      iMetrics != localMetrics.end(); ++iMetrics )
-	    metrics.push_back( *iMetrics );
-	outputMutex.unlock();
+        driver.loadTripData( driverTripDataIO.rawData() );
+        const std::vector< Trip >& trips = driver.trips();
+        
+        std::vector< TripMetrics > localMetrics = driver.tripMetrics();
+        
+        outputMutex.lock();
+        for ( std::vector< TripMetrics >::const_iterator iMetrics = localMetrics.begin();
+             iMetrics != localMetrics.end(); ++iMetrics )
+            metrics.push_back( *iMetrics );
+        outputMutex.unlock();
         log.taskEnded();
     }
 }
@@ -160,16 +160,16 @@ void metricsThreadFunction( std::mutex* pinputMutex,
 
 size_t
 DriverDataProcessing::produceTripMetrics( std::vector< TripMetrics >& outputData,
-					  int numberOfThreads ) const
+                                         int numberOfThreads ) const
 {
-    // The driver vector
+        // The driver vector
     DirectoryListing dirList( m_driversDirectory );
     std::list<std::string> driverFiles = dirList.directoryContent();
     for (std::list<std::string>::iterator iDriverFile = driverFiles.begin();
          iDriverFile != driverFiles.end(); ++iDriverFile ) {
         *iDriverFile = m_driversDirectory + "/" + *iDriverFile;
     }
-
+    
     size_t numberOfDrivers = driverFiles.size();
     
     outputData.clear();
@@ -188,104 +188,86 @@ DriverDataProcessing::produceTripMetrics( std::vector< TripMetrics >& outputData
     for ( int i = 0; i < numberOfThreads; ++i ) {
         threads[i].join();
     }
-
+    
     return numberOfDrivers;
 }
 
 
+
+
+
+
+
+
+//******************************* TRIP SCORING *******************************************
+
+
 void
 DriverDataProcessing::scoreTrips( std::vector< std::tuple< long, long, double > >& output,
-				  int numberOfThreads ) const
+                                 int numberOfThreads ) const
 {
-    // First calculate the trip metrics
-    TripMetricsReference masterReference;
+    const long numberOfBinsBackground = 200;
+    const long numberOfBinsDriver = 15;
+    
+    // First calculate the trip metrics from the FFT transforms
     std::vector< TripMetrics > tripMetrics;
     size_t numberOfDrivers = this->produceTripMetrics( tripMetrics, numberOfThreads );
-    masterReference.initialise( tripMetrics);
-
-    const std::vector<double>& weights = masterReference.std();
-
-
-    // The list of the metrics indices to be used in scoring
-    //std::set<size_t> indicesForScoring = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 };
-    std::set<size_t> indicesForScoring = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 };
+    TripMetricsReference masterReference( tripMetrics, numberOfBinsBackground );
     
+    ProcessLogger log( numberOfDrivers, "Calculating the trip scores from metrics : " );
     
-    double sumOfWeights = 0;
-    for ( size_t i = 0; i < weights.size(); ++i )
-	      if ( indicesForScoring.find( i ) != indicesForScoring.end() )
-		  sumOfWeights += weights[i];
-
-    ProcessLogger log( numberOfDrivers, "Calculating the trip scores : " );
-
     // For each driver construct the local reference and then score the trips within the metrics set.
-    long driverId = tripMetrics.front().driverId;
+    long driverId = tripMetrics.front().driverId();
     size_t startingIndex = 0;
     for ( size_t i = 1; i < tripMetrics.size(); ++i ) {
-	
-	long currentDriverId = tripMetrics[i].driverId;
-	if ( currentDriverId == driverId && i < tripMetrics.size() - 1 )
-	    continue;
-
-	size_t lastIndex = i - 1;
-	if ( i == tripMetrics.size() - 1 ) ++lastIndex;
-
-	if ( lastIndex - startingIndex != 199 )
-	    throw std::runtime_error("Wrong number of entries");
-
-	// Select the metrics of the driver
-	std::vector< TripMetrics > driverMetrics( tripMetrics.begin() + startingIndex, tripMetrics.begin() + lastIndex + 1 );
-
-
-	// Create the driver reference
-	TripMetricsReference* driverReference = masterReference.createUsingReference( driverMetrics );
-
-	// Now score the trips for this driver
-	for ( std::vector< TripMetrics >::const_iterator iTripMetrics = driverMetrics.begin();
-	      iTripMetrics != driverMetrics.end(); ++iTripMetrics ) {
-
-	    std::vector<double> scoresFromDriver = driverReference->scoreMetrics( *iTripMetrics );
-	    std::vector<double> scoresFromReference = masterReference.scoreMetrics( *iTripMetrics );
-
-	    // Check the sizes!
-	    if (scoresFromDriver.size() != scoresFromReference.size() )
-		throw std::runtime_error("Different sizes for score vectors received!");
-
-	    if (scoresFromDriver.size() == 0 )
-		throw std::runtime_error("Zero sized vectors returned!!!");
-
-	    
-	    // Calculate the average score
-	    double score = 0;
-	    if ( scoresFromDriver.size() == 1 ) {
-		score = scoresFromDriver[0] / ( scoresFromReference[0] + scoresFromDriver[0] );
-	    }
-	    else {
-		for ( size_t iScore = 0; iScore < scoresFromDriver.size(); ++ iScore ) {
-		    if ( indicesForScoring.find( iScore ) == indicesForScoring.end() )
-			continue;
-		    double probabilityFromDriver = scoresFromDriver[iScore];
-		    if ( probabilityFromDriver == 0 ) {
-			std::ostringstream os;
-			os << "Driver " << iTripMetrics->driverId << ", trip " << iTripMetrics->tripId << ", metric " << iScore << " : Probability from driver found 0!!!";
-			throw std::runtime_error( os.str() );
-		    }
-		    double probabilityFromReference = scoresFromReference[iScore];
-		    score += weights[iScore] * probabilityFromDriver / ( probabilityFromDriver + probabilityFromReference );
-		}
-		score /= sumOfWeights;
-	    }
-	    
-	    // Report the score
-	    long tripId = iTripMetrics->tripId;
-	    output.push_back( std::make_tuple(driverId, tripId, score ) );
-	}
-	
-	delete driverReference;
-
-	startingIndex = i;
-	driverId = currentDriverId;
-	log.taskEnded();
+        
+        long currentDriverId = tripMetrics[i].driverId();
+        if ( currentDriverId == driverId && i < tripMetrics.size() - 1 )
+            continue;
+        
+        size_t lastIndex = i - 1;
+        if ( i == tripMetrics.size() - 1 ) ++lastIndex;
+        
+        // Select the metrics of the driver
+        std::vector< TripMetrics > driverMetrics( tripMetrics.begin() + startingIndex, tripMetrics.begin() + lastIndex + 1 );
+        
+        // Create the driver reference
+        TripMetricsReference driverReference ( driverMetrics, numberOfBinsDriver );
+        
+        // Score the trips
+        for ( std::vector< TripMetrics >::const_iterator iTripMetrics = driverMetrics.begin();
+             iTripMetrics != driverMetrics.end(); ++iTripMetrics ) {
+            
+            std::vector<double> scoreFromAll = masterReference.scoreMetrics( *iTripMetrics );
+            std::vector<double> scoreFromDriver = driverReference.scoreMetrics( *iTripMetrics );
+            
+            std::vector<double> probabilities( scoreFromAll.size(), NAN );
+            for ( size_t iMetric = 0; iMetric < probabilities.size(); ++iMetric ) {
+                if ( std::isnan( scoreFromAll[iMetric] ) || std::isnan(scoreFromDriver[iMetric]) ) continue;
+                probabilities[iMetric] = scoreFromDriver[iMetric] / (scoreFromAll[iMetric] + scoreFromDriver[iMetric] );
+            }
+            
+            
+            double score = 0;
+            long nScores = 0;
+            
+            for ( size_t iScore = 0; iScore < probabilities.size(); ++iScore ) {
+                double scoreForMetric = probabilities[iScore];
+                if ( std::isnan( scoreForMetric ) ) continue;
+                score += scoreForMetric;
+                ++nScores;
+            }
+            
+            score /= nScores;
+            
+            long tripId = iTripMetrics->tripId();
+            
+            output.push_back( std::make_tuple(driverId, tripId, score ) );
+        }
+        
+        startingIndex = i;
+        driverId = currentDriverId;
+        log.taskEnded();
     }
-    
+
 }

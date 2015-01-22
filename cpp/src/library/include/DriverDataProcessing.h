@@ -7,8 +7,9 @@
 #include "Driver.h"
 #include "TripMetrics.h"
 
-class DriverDataProcessing {
-public:
+class DriverDataProcessing
+{
+ public:
     // Constructor
     explicit DriverDataProcessing( const std::string& driversDirectory );
     
@@ -20,13 +21,14 @@ public:
 
     // Produces the trip metrics for all trivers and trips. Returns the number of drivers
     size_t produceTripMetrics( std::vector< TripMetrics >& outputData,
-			       int numberOfThreads = 6 ) const;
+                              int numberOfThreads = 6 ) const;
 
     // Calculates the trip scores by comparing driver metrics against population metrics
     void scoreTrips( std::vector< std::tuple< long, long, double > >& output,
 		     int numberOfThreads = 6 ) const;
     
-private:
+ private:
+    // The driver directory containing the trip data files
     std::string m_driversDirectory;
 };
 
