@@ -14,20 +14,29 @@ TripMetrics::~TripMetrics()
 const std::vector< std::string >&
 TripMetrics::descriptions() const
 {
-    static const std::vector< std::string > descriptions = { "ZeroSegments",
-							     "FewPoints",
-							     "log10(1+TripDuration)",
-							     "log10(1+TripLength)",
-							     "log10(1+speedP25)",
-							     "log10(1+speedP50)",
-							     "log10(1+speedP75)",
-							     "log10(1+speedP95)",
-							     "log10(1+accelerationP05_95)",
-							     "log10(1+accelerationP25_75)",
-							     "log10(1+100*directionP05_95)",
-							     "log10(1+speedXaccelerationP05_95)",
-							     "log10(1+speedXaccelerationP25_75)",
-							     "log10(0.01+totalDirectionChange)" };
+    static const std::vector< std::string > descriptions = {
+        "ZeroSegments",
+        "FewPoints",
+        "log10(1+TripDuration)",
+        "log10(1+TripLength)",
+        "log10(0.1+speedP25)",
+        "log10(0.1+speedP50)",
+        "log10(0.1+speedP75)",
+        "log10(0.1+speedP95)",
+        "log10(-accelerationP05)",
+        "log10(-accelerationP25)",
+        "log10(accelerationP75)",
+        "log10(accelerationP95)",
+        "log10(-directionP05)",
+        "log10(-directionP25)",
+        "log10(directionP75)",
+        "log10(directionP95)",
+        "log10(-speedXaccelerationP05)",
+        "log10(-speedXaccelerationP25)",
+        "log10(speedXaccelerationP75)",
+        "log10(speedXaccelerationP95)",
+        "log10(0.001+totalDirectionChange)"
+    };
     return descriptions;
 }
 

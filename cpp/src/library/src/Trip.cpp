@@ -60,19 +60,9 @@ Trip::numberOfValidPoints() const
 TripMetrics
 Trip::metrics() const
 {
-    static const long numberOfTripMetrics= 14;
-
-    // The limits on the metrics
-    static const long minimumNumberOfPoints = 20;
-    static const long maxTripDuration = 3160;
-    static const double maxTripLength = 100000;
+    static const long numberOfTripMetrics= 21;
     
-    static const double maxSpeed = 40;
-    static const double maxAcceleration = 5;
-    static const double maxSpeedXacceleration = maxSpeed * maxAcceleration;
-    static const double maxDirection = 1.5;
-    static const double maxTotalDirectionChange = 1;
-
+    static const long minimumNumberOfPoints = 20;
     
     const_cast<Trip&>(*this).generateSegments();
     
@@ -90,40 +80,53 @@ Trip::metrics() const
         else {
             metricsValues[1] = 0;
             long travelDuration = this->travelDuration();
-            if ( travelDuration < maxTripDuration ) metricsValues[2] = std::log10( 1 + travelDuration );
+            metricsValues[2] = std::log10( 1 + travelDuration );
             double tripLength = this->travelLength();
-            if ( tripLength < maxTripLength ) metricsValues[3] = std::log10( 1 + tripLength );
+            metricsValues[3] = std::log10( 1 + tripLength );
             
             // Speed percentiles
             std::vector<double> percentiles = this->speedQuantiles();
             for (size_t i = 1; i <= 4; ++i )
-                if ( percentiles[i] < maxSpeed ) metricsValues[i+3] = std::log10( 1 + percentiles[i] );
+                metricsValues[i+3] = std::log10( 0.1 + percentiles[i] );
             
             // Acceleration percentiles
             percentiles = this->accelerationQuantiles();
-            double meanPercentile = 0.5 * ( std::abs( percentiles[0] ) + std::abs( percentiles[4] ) );
-            if ( meanPercentile < maxAcceleration ) metricsValues[8] = std::log10( 1 + meanPercentile );
-            meanPercentile = 0.5 * ( std::abs( percentiles[1] ) + std::abs( percentiles[3] ) );
-            if ( meanPercentile < ( maxAcceleration / 2 ) ) metricsValues[9] = std::log10( 1 + meanPercentile );
+            double value = -percentiles[0];
+            if ( value > 0 ) metricsValues[8] = std::log10( value );
+            value = -percentiles[1];
+            if ( value > 0 ) metricsValues[9] = std::log10( value );
+            value = percentiles[3];
+            if ( value > 0 ) metricsValues[10] = std::log10( value );
+            value = percentiles[4];
+            if ( value > 0 ) metricsValues[11] = std::log10( value );
             
             // Direction percentiles
             percentiles = this->directionQuantiles();
-            meanPercentile = 0.5 * ( std::abs( percentiles[0] ) + std::abs( percentiles[4] ) );
-            if ( meanPercentile < maxDirection ) metricsValues[10] = std::log10( 1 + 100 * meanPercentile );
-            
+            value = -percentiles[0];
+            if ( value > 0 ) metricsValues[12] = std::log10( value );
+            value = -percentiles[1];
+            if ( value > 0 ) metricsValues[13] = std::log10( value );
+            value = percentiles[3];
+            if ( value > 0 ) metricsValues[14] = std::log10( value );
+            value = percentiles[4];
+            if ( value > 0 ) metricsValues[15] = std::log10( value );
+
             // Speed x Acceleration percentiles
             std::vector<double> values = this->speedXaccelerationValues();
             percentiles = findQuantiles( values );
-            meanPercentile = 0.5 * ( std::abs( percentiles[0] ) + std::abs( percentiles[4] ) );
-            if ( meanPercentile < maxSpeedXacceleration ) metricsValues[11] = std::log10( 1 + meanPercentile );
-            meanPercentile = 0.5 * ( std::abs( percentiles[1] ) + std::abs( percentiles[3] ) );
-            if ( meanPercentile < maxSpeedXacceleration ) metricsValues[12] = std::log10( 1 + meanPercentile );
+            value = -percentiles[0];
+            if ( value > 0 ) metricsValues[16] = std::log10( value );
+            value = -percentiles[1];
+            if ( value > 0 ) metricsValues[17] = std::log10( value );
+            value = percentiles[3];
+            if ( value > 0 ) metricsValues[18] = std::log10( value );
+            value = percentiles[4];
+            if ( value > 0 ) metricsValues[19] = std::log10( value );
             
             // Total turns
             double totalDirectionChange = this->totalDirectionChange();
-            if ( totalDirectionChange < maxTotalDirectionChange ) metricsValues[13] = std::log10( 0.01 + totalDirectionChange );
+            metricsValues[20] = std::log10( 0.001 + totalDirectionChange );
             
-            // FFT transformation components
             
         }
     }

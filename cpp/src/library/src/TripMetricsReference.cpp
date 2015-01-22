@@ -1,12 +1,14 @@
 #include "TripMetricsReference.h"
 #include "Histogram.h"
-
+#include "Utilities.h"
 #include <exception>
 #include <sstream>
 #include <cmath>
+#include <algorithm>
 
 TripMetricsReference::TripMetricsReference( const std::vector< TripMetrics >& input,
-                                            long binsForHistograms ):
+                                            long binsForHistograms,
+                                            bool trimExtremes ):
 m_histograms()
 {
     // Create the vectors to feed the histograms
@@ -19,7 +21,7 @@ m_histograms()
     std::vector<double> minValues = input.front().values();
     std::vector<double> maxValues = input.front().values();
     
-    std::vector< std::vector<double> > allValues( numberOfHistograms, std::vector<double>( input.size(), NAN ) );
+    std::vector< std::vector<double> > allValues( numberOfHistograms, std::vector<double>() );
     
     // Loop over the trip metrics and fill in the valarrays, minimum and maximum values
     for ( size_t iMetric = 0; iMetric < input.size(); ++iMetric ) {
@@ -29,7 +31,7 @@ m_histograms()
         for ( size_t iValue = 0; iValue < numberOfHistograms; ++iValue ) {
             if ( std::isnan(metricValues[iValue])) continue;
             double currentValue = metricValues[iValue];
-            allValues[iValue][iMetric] = currentValue;
+            allValues[iValue].push_back( currentValue );
             if ( std::isnan(minValues[iValue]) || currentValue < minValues[iValue] ) minValues[iValue] = currentValue;
             if ( std::isnan(maxValues[iValue]) || currentValue > maxValues[iValue] ) maxValues[iValue] = currentValue;
         }
@@ -37,18 +39,28 @@ m_histograms()
     
     // For each vector create the corresponding histogram
     for ( size_t iValue = 0; iValue < numberOfHistograms; ++iValue ) {
-        
         // Calculate the edges to be 1% of the bin size beyond the minimum and maximum value
         double lowEdge = minValues[iValue];
         double highEdge = maxValues[iValue];
+        std::vector<double>& valuesForMetric = allValues[iValue];
+
+        if ( trimExtremes ) {
+            std::sort( valuesForMetric.begin(), valuesForMetric.end() );
+            const double percentageToKeep = 99.5;
+            size_t lowEdgeIndex = static_cast< size_t>(std::floor( valuesForMetric.size() * (100 - percentageToKeep) / 200 ) );
+            lowEdge = valuesForMetric[lowEdgeIndex];
+            size_t highEdgeIndex = static_cast< size_t>(std::floor( valuesForMetric.size() * (100 + percentageToKeep) / 200 ) ) + 1;
+            highEdge = valuesForMetric[highEdgeIndex];
+        }
+
         double binSize = ( highEdge - lowEdge ) / binsForHistograms;
         highEdge += 0.01 * binSize;
         
         // Create the histogram
-        m_histograms.push_back( new Histogram( allValues[iValue],
-                                              binsForHistograms,
-                                              lowEdge,
-                                              highEdge ) );
+        m_histograms.push_back( new Histogram( valuesForMetric,
+                                               binsForHistograms,
+                                               lowEdge,
+                                               highEdge ) );
         
     }
 }

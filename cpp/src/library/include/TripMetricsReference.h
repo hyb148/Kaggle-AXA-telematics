@@ -12,7 +12,8 @@ class TripMetricsReference
  public:
     // Constructor
     TripMetricsReference( const std::vector< TripMetrics >& input,
-                         long binsForHistograms );
+                         long binsForHistograms,
+                         bool trimExtremes = true );
 
     // Destructor
     ~TripMetricsReference();
