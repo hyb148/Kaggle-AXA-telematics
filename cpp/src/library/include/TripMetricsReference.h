@@ -20,6 +20,9 @@ class TripMetricsReference
 
     // Returns the probability values for a given metrics set
     std::vector<double> scoreMetrics( const TripMetrics& input ) const;
+    
+    // Returns the normalised standard deviations for each metric
+    std::vector<double> metricStd() const;
 
  private:
     std::vector< Histogram* > m_histograms;

@@ -195,11 +195,76 @@ DriverDataProcessing::produceTripMetrics( std::vector< TripMetrics >& outputData
 
 
 
+//****************************** Calculation of metric powers ***************************************************************
+
+static std::vector<double>
+calculateMetricPower( const TripMetricsReference& masterReference,
+                      const std::vector< TripMetrics >& tripMetrics,
+                      long numberOfBinsDriver )
+{
+    std::vector<double> referenceStd = masterReference.metricStd();
+    std::vector<double> metricsPowers( referenceStd.size(), 0 );
+    std::vector<long> metricsPowersEntries( referenceStd.size(), 0 );
+
+    ProcessLogger log( 3, "Calculating the power of the metrics : " );
+        // For each driver construct the local reference and then score the trips within the metrics set.
+    long driverId = tripMetrics.front().driverId();
+    size_t startingIndex = 0;
+    
+    log.taskEnded();
+    
+    for ( size_t i = 1; i < tripMetrics.size(); ++i ) {
+        
+        long currentDriverId = tripMetrics[i].driverId();
+        if ( currentDriverId == driverId && i < tripMetrics.size() - 1 )
+            continue;
+        
+        size_t lastIndex = i - 1;
+        if ( i == tripMetrics.size() - 1 ) ++lastIndex;
+        
+        // Select the metrics of the driver
+        std::vector< TripMetrics > driverMetrics( tripMetrics.begin() + startingIndex, tripMetrics.begin() + lastIndex + 1 );
+        
+        // Create the driver reference
+        TripMetricsReference driverReference ( driverMetrics, numberOfBinsDriver, false );
+        std::vector<double> driverStd =driverReference.metricStd();
+        for ( size_t m = 0; m < driverStd.size(); ++m ) {
+            metricsPowers[m] += driverStd[m];
+            metricsPowersEntries[m] += 1;
+        }
+        
+        startingIndex = i;
+        driverId = currentDriverId;
+    }
+    log.taskEnded();
+
+    for ( size_t m = 0; m < referenceStd.size(); ++m )
+        metricsPowers[m] = std::pow( metricsPowers[m] / ( metricsPowersEntries[m] * referenceStd[m] ), 2);
+    
+    log.taskEnded();
+    
+    return metricsPowers;
+}
 
 
+//************ selects the best 50% of the metrics
+static double
+thresholdValueFromVector( const std::vector<double>& values )
+{
+    std::vector<double> orderedValues;
+    orderedValues.reserve( values.size() );
+    
+    for ( size_t i = 0; i < values.size(); ++i ) {
+        if ( std::isnan( values[i])) continue;
+        orderedValues.push_back( values[i]);
+    }
+    
+    std::sort( orderedValues.begin(), orderedValues.end() );
+    return orderedValues[  orderedValues.size() / 2 ];
+}
 
 
-//******************************* TRIP SCORING *******************************************
+//************************************** TRIP SCORING ************************************************************
 
 
 void
@@ -207,12 +272,21 @@ DriverDataProcessing::scoreTrips( std::vector< std::tuple< long, long, double > 
                                  int numberOfThreads ) const
 {
     const long numberOfBinsBackground = 200;
-    const long numberOfBinsDriver = 15;
+    const long numberOfBinsDriver = 20;
     
-    // First calculate the trip metrics from the FFT transforms
+    // First calculate the trip metrics
     std::vector< TripMetrics > tripMetrics;
     size_t numberOfDrivers = this->produceTripMetrics( tripMetrics, numberOfThreads );
-    TripMetricsReference masterReference( tripMetrics, numberOfBinsBackground );
+    TripMetricsReference masterReference( tripMetrics, numberOfBinsBackground, true );
+    
+    // Then calculate the relative power of the metrics
+    std::vector<double> metricsPowers = calculateMetricPower( masterReference,
+                                                             tripMetrics,
+                                                             numberOfBinsDriver );
+    
+    // Select the threshold for the metrics power
+    double thresholdValue = thresholdValueFromVector( metricsPowers );
+    thresholdValue = 0;
     
     ProcessLogger log( numberOfDrivers, "Calculating the trip scores from metrics : " );
     
@@ -232,7 +306,7 @@ DriverDataProcessing::scoreTrips( std::vector< std::tuple< long, long, double > 
         std::vector< TripMetrics > driverMetrics( tripMetrics.begin() + startingIndex, tripMetrics.begin() + lastIndex + 1 );
         
         // Create the driver reference
-        TripMetricsReference driverReference ( driverMetrics, numberOfBinsDriver );
+        TripMetricsReference driverReference ( driverMetrics, numberOfBinsDriver, false );
         
         // Score the trips
         for ( std::vector< TripMetrics >::const_iterator iTripMetrics = driverMetrics.begin();
@@ -241,24 +315,30 @@ DriverDataProcessing::scoreTrips( std::vector< std::tuple< long, long, double > 
             std::vector<double> scoreFromAll = masterReference.scoreMetrics( *iTripMetrics );
             std::vector<double> scoreFromDriver = driverReference.scoreMetrics( *iTripMetrics );
             
-            std::vector<double> probabilities( scoreFromAll.size(), NAN );
-            for ( size_t iMetric = 0; iMetric < probabilities.size(); ++iMetric ) {
-                if ( std::isnan( scoreFromAll[iMetric] ) || std::isnan(scoreFromDriver[iMetric]) ) continue;
-                probabilities[iMetric] = scoreFromDriver[iMetric] / (scoreFromAll[iMetric] + scoreFromDriver[iMetric] );
-            }
-            
-            
             double score = 0;
-            long nScores = 0;
+            double totalWeight = 0;
             
-            for ( size_t iScore = 0; iScore < probabilities.size(); ++iScore ) {
-                double scoreForMetric = probabilities[iScore];
-                if ( std::isnan( scoreForMetric ) ) continue;
-                score += scoreForMetric;
-                ++nScores;
+            for ( size_t iMetric = 0; iMetric < scoreFromAll.size(); ++iMetric ) {
+                if ( std::isnan( scoreFromAll[iMetric] ) || std::isnan(scoreFromDriver[iMetric]) ) continue;
+                
+                double probability = scoreFromDriver[iMetric] / (scoreFromAll[iMetric] + scoreFromDriver[iMetric] );
+                
+                // check if it is a binary variable
+                if ( std::isnan( metricsPowers[iMetric] ) ) {
+                    if ( (*iTripMetrics).values()[iMetric] == 1 ) {
+                        score = probability;
+                        totalWeight = 1;
+                        break;
+                    }
+                }
+                else {
+                    if ( thresholdValue > metricsPowers[iMetric] ) continue; // Skip low power metrics
+                    score += metricsPowers[iMetric] * probability;
+                    totalWeight += metricsPowers[iMetric];
+                }
             }
             
-            score /= nScores;
+            score /= totalWeight;
             
             long tripId = iTripMetrics->tripId();
             

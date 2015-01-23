@@ -93,3 +93,13 @@ TripMetricsReference::scoreMetrics( const TripMetrics& input ) const
     
     return result;
 }
+
+
+std::vector<double>
+TripMetricsReference::metricStd() const
+{
+    std::vector<double> result(m_histograms.size(),0);
+    for ( size_t i = 0; i < result.size(); ++i )
+        result[i] = m_histograms[i]->normalisedStandardDeviation();
+    return result;
+}

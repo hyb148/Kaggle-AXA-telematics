@@ -60,7 +60,7 @@ Trip::numberOfValidPoints() const
 TripMetrics
 Trip::metrics() const
 {
-    static const long numberOfTripMetrics= 21;
+    static const long numberOfTripMetrics= 31;
     
     static const long minimumNumberOfPoints = 20;
     
@@ -127,7 +127,13 @@ Trip::metrics() const
             double totalDirectionChange = this->totalDirectionChange();
             metricsValues[20] = std::log10( 0.001 + totalDirectionChange );
             
-            
+            // The rolling FFT transformations.
+            std::valarray< double > fft = this->rollingFFT( 11 );
+            if ( fft.size() > 0 )
+                for (size_t i = 0; i < 5; ++i ) metricsValues[21 + i] = fft[i];
+            std::valarray< double > fftd = this->rollingFFT_direction( 11 );
+            if ( fftd.size() > 0 )
+                for (size_t i = 0; i < 5; ++i ) metricsValues[26 + i] = fftd[i];
         }
     }
     
