@@ -42,7 +42,7 @@ obj/library/%.o : src/library/src/%.cpp
 
 $(LIBFILE): $(OBJECTS)
 	@mkdir -p lib
-	clang++ -dynamiclib -o $@ -fPIC -lc++ $(OBJECTS)
+	clang++ -dynamiclib -o $@ -fPIC -larmadillo -lc++ $(OBJECTS)
 
 bin/% : src/applications/%.cpp $(LIBFILE)
 	@mkdir -p bin
