@@ -31,6 +31,9 @@ public:
     // Returns a vector of the metric descriptions
     const std::vector< std::string >& descriptions() const;
     
+    // Returns the number of binary metrics (which appear in the beginning)
+    static long numberOfBinaryMetrics();
+    
     // Writes the descriptions to an output stream (space separated values)
     std::ostream& writeDescriptions( std::ostream& out ) const;
     

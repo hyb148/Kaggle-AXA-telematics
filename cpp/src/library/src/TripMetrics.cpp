@@ -28,8 +28,6 @@ TripMetrics::descriptions() const
         "log10(accelerationP75)",
         "log10(accelerationP95)",
         "log10(-directionP05)",
-        "log10(-directionP25)",
-        "log10(directionP75)",
         "log10(directionP95)",
         "log10(-speedXaccelerationP05)",
         "log10(-speedXaccelerationP25)",
@@ -49,6 +47,14 @@ TripMetrics::descriptions() const
     };
     return descriptions;
 }
+
+
+long
+TripMetrics::numberOfBinaryMetrics()
+{
+    return 2;
+}
+
 
 
 std::ostream&
