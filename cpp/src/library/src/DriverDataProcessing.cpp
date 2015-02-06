@@ -204,7 +204,7 @@ DriverDataProcessing::scoreTrips( std::vector< std::tuple< long, long, double > 
     const long numberOfBinsBackground = 200;
     const long numberOfBinsDriver = 25;
     
-    const double backgroundProportion = 0.3;
+    const double backgroundProportion = 0.25;
     const double signalProportion = 1.0 - backgroundProportion;
     
     // First calculate the trip metrics
