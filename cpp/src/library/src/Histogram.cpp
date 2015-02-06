@@ -64,10 +64,9 @@ Histogram::contents( std::ostream& os ) const
     << "Bins      : " << m_bins << std::endl
     << "Bin size  : " << m_binSize << std::endl
     << "Values    : ";
-    for ( std::vector< double >::const_iterator iValue = m_prob.begin();
-         iValue != m_prob.end(); ++iValue ) {
-        os << *iValue << ",  ";
-    }
-    os << std::endl;
+    os << "[ " << m_prob[0] << " ]";
+    for ( size_t i = 1; i < m_prob.size() - 1; ++i )
+        os << ", " << m_prob[i];
+    os << ", ( " << m_prob[m_prob.size()-1] << " )" << std::endl;
     return os;
 }
