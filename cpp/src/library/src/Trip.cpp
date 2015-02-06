@@ -60,7 +60,7 @@ Trip::numberOfValidPoints() const
 TripMetrics
 Trip::metrics() const
 {
-    static const long numberOfTripMetrics= 31;
+    static const long numberOfTripMetrics= 29;
     
     static const long minimumNumberOfPoints = 20;
     
@@ -104,36 +104,33 @@ Trip::metrics() const
             percentiles = this->directionQuantiles();
             value = -percentiles[0];
             if ( value > 0 ) metricsValues[12] = std::log10( value );
-            value = -percentiles[1];
-            if ( value > 0 ) metricsValues[13] = std::log10( value );
-            value = percentiles[3];
-            if ( value > 0 ) metricsValues[14] = std::log10( value );
+
             value = percentiles[4];
-            if ( value > 0 ) metricsValues[15] = std::log10( value );
+            if ( value > 0 ) metricsValues[13] = std::log10( value );
 
             // Speed x Acceleration percentiles
             std::vector<double> values = this->speedXaccelerationValues();
             percentiles = findQuantiles( values );
             value = -percentiles[0];
-            if ( value > 0 ) metricsValues[16] = std::log10( value );
+            if ( value > 0 ) metricsValues[14] = std::log10( value );
             value = -percentiles[1];
-            if ( value > 0 ) metricsValues[17] = std::log10( value );
+            if ( value > 0 ) metricsValues[15] = std::log10( value );
             value = percentiles[3];
-            if ( value > 0 ) metricsValues[18] = std::log10( value );
+            if ( value > 0 ) metricsValues[16] = std::log10( value );
             value = percentiles[4];
-            if ( value > 0 ) metricsValues[19] = std::log10( value );
+            if ( value > 0 ) metricsValues[17] = std::log10( value );
             
             // Total turns
             double totalDirectionChange = this->totalDirectionChange();
-            metricsValues[20] = std::log10( 0.001 + totalDirectionChange );
+            metricsValues[18] = std::log10( 0.001 + totalDirectionChange );
             
             // The rolling FFT transformations.
             std::valarray< double > fft = this->rollingFFT( 11 );
             if ( fft.size() > 0 )
-                for (size_t i = 0; i < 5; ++i ) metricsValues[21 + i] = fft[i];
+                for (size_t i = 0; i < 5; ++i ) metricsValues[19 + i] = fft[i];
             std::valarray< double > fftd = this->rollingFFT_direction( 11 );
             if ( fftd.size() > 0 )
-                for (size_t i = 0; i < 5; ++i ) metricsValues[26 + i] = fftd[i];
+                for (size_t i = 0; i < 5; ++i ) metricsValues[24 + i] = fftd[i];
         }
     }
     
