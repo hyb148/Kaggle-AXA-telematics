@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <utility>
+#include <iosfwd>
 
 // Simple PCA
 class PCA
@@ -19,7 +20,10 @@ class PCA
     
     // Transforms a vector to the principal component space
     std::vector< double > transform( const std::vector< double >& data,
-                                    double ratioOfVarianceToRetain = 0.95 ) const;
+                                    double ratioOfVarianceToRetain = 0.85 ) const;
+    
+    // Dumps the variance ratio (normalised eigenvalues) and the eigenvectors to output stream
+    std::ostream& dumpContent( std::ostream& os ) const;
 
  private:
     // The eigenvalues and eigenvectors

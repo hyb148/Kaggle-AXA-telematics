@@ -3,6 +3,7 @@
 #include <vector>
 #include <algorithm>
 #include <exception>
+#include <ostream>
 
 #define ARMA_NO_DEBUG
 #include <armadillo>
@@ -112,3 +113,24 @@ PCA::transform( const std::vector< double >& data,
 
     return result;
 }
+
+
+std::ostream&
+PCA::dumpContent( std::ostream& os ) const
+{
+    os << "PCA details: " << std::endl;
+    for ( std::vector< std::pair< double, std::vector<double > > >::const_iterator i = m_eigPairs.begin();
+         i != m_eigPairs.end(); ++i ) {
+        os << i->first << " : ";
+        const std::vector<double>& w = i->second;
+        for ( size_t j = 0; j < w.size(); ++j ) {
+            if (j == 0 ) os << "[ ";
+            else os << ", ";
+            os << w[j];
+        }
+        os << " ]" << std::endl;
+    }
+    
+    return os;
+}
+
