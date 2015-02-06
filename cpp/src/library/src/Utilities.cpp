@@ -149,3 +149,52 @@ vfft( const std::vector<double>& data )
 
     return transformed;
 }
+
+
+std::vector<std::vector<double> >
+tripExtremesFromColumns( const std::vector<std::vector<double> >& input, double percentageToKeep )
+{
+    // Create a transpose matrix
+    const size_t nSamples = input.size();
+    const size_t nFeatures = input.front().size();
+    std::vector< std::vector<double> > inputT( nFeatures, std::vector<double>( nSamples, 0.0 ) );
+    for ( size_t i = 0; i < nSamples; ++i )
+        for (size_t j = 0; j < nFeatures; ++j )
+            inputT[j][i] = input[i][j];
+    
+    // Find min and max values (by trimming)
+    std::vector<double> minValues( nFeatures, 0.0 );
+    std::vector<double> maxValues( nFeatures, 0.0 );
+    for ( size_t i = 0; i < nFeatures; ++i ) {
+        std::vector<double>& featureVector = inputT[i];
+        
+        std::sort( featureVector.begin(), featureVector.end() );
+        
+        size_t lowEdgeIndex = static_cast< size_t>(std::floor( featureVector.size() * (100 - percentageToKeep) / 200 ) );
+        minValues[i] = featureVector[lowEdgeIndex];
+        size_t highEdgeIndex = static_cast< size_t>(std::floor( featureVector.size() * (100 + percentageToKeep) / 200 ) );
+        if ( highEdgeIndex + 1 < featureVector.size() ) highEdgeIndex++;
+        maxValues[i] = featureVector[highEdgeIndex];
+    }
+    
+    // Filter the rows of the input so that they do not contain columns with extreme values
+    inputT.clear();
+    inputT.reserve( nSamples );
+    for ( size_t i = 0; i < nSamples; ++i ) {
+        const std::vector<double>& sample = input[i];
+        bool extremeFound = false;
+        for ( size_t j = 0; j < nFeatures; ++j ) {
+            const double value = sample[j];
+            if ( value < minValues[j] || value > maxValues[j] ) {
+                extremeFound = true;
+                break;
+            }
+        }
+        
+        if (extremeFound) continue;
+        inputT.push_back( sample );
+    }
+    
+    return inputT;
+}
+

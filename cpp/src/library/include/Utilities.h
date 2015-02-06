@@ -44,4 +44,8 @@ r2_correlation( const std::vector<double>& x,
 std::valarray< double >
 vfft( const std::vector<double>& data );
 
+
+std::vector<std::vector<double> >
+tripExtremesFromColumns( const std::vector<std::vector<double> >& input, double percentageToKeep );
+
 #endif
