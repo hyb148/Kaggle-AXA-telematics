@@ -12,13 +12,14 @@ TripMetrics::~TripMetrics()
 {}
 
 const std::vector< std::string >&
-TripMetrics::descriptions() const
+TripMetrics::descriptions()
 {
     static const std::vector< std::string > descriptions = {
         "ZeroSegments",
         "FewPoints",
         "log10(1+TripDuration)",
         "log10(1+TripLength)",
+        "DistanceToTravel",
         "log10(0.1+speedP25)",
         "log10(0.1+speedP50)",
         "log10(0.1+speedP75)",

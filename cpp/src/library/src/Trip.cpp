@@ -60,7 +60,7 @@ Trip::numberOfValidPoints() const
 TripMetrics
 Trip::metrics() const
 {
-    static const long numberOfTripMetrics= 29;
+    static const long numberOfTripMetrics= TripMetrics::descriptions().size();
     
     static const long minimumNumberOfPoints = 20;
     
@@ -68,69 +68,87 @@ Trip::metrics() const
     
     std::vector<double> metricsValues( numberOfTripMetrics, NAN );
     
+    size_t j = 0;
+    
     // Check if this is a zero segment trip
     if ( m_segments.size() == 0 ) {
-        metricsValues[0] = 1;
+        metricsValues[j++] = 1;
     }
     else {
-        metricsValues[0] = 0;
+        metricsValues[j++] = 0;
         if ( this->numberOfValidPoints() < minimumNumberOfPoints ) {
-            metricsValues[1] = 1;
+            metricsValues[j++] = 1;
         }
         else {
-            metricsValues[1] = 0;
+            metricsValues[j++] = 0;
             long travelDuration = this->travelDuration();
-            metricsValues[2] = std::log10( 1 + travelDuration );
+            metricsValues[j++] = std::log10( 1 + travelDuration );
             double tripLength = this->travelLength();
-            metricsValues[3] = std::log10( 1 + tripLength );
+            metricsValues[j++] = std::log10( 1 + tripLength );
+            
+            // Trip length to distance
+            double distanceToTravel = m_distanceOfEndPoint / tripLength;
+            metricsValues[j++] = distanceToTravel;
             
             // Speed percentiles
             std::vector<double> percentiles = this->speedQuantiles();
             for (size_t i = 1; i <= 4; ++i )
-                metricsValues[i+3] = std::log10( 0.1 + percentiles[i] );
+                metricsValues[j++] = std::log10( 0.1 + percentiles[i] );
             
             // Acceleration percentiles
             percentiles = this->accelerationQuantiles();
             double value = -percentiles[0];
-            if ( value > 0 ) metricsValues[8] = std::log10( value );
+            if ( value > 0 ) metricsValues[j] = std::log10( value );
+            ++j;
             value = -percentiles[1];
-            if ( value > 0 ) metricsValues[9] = std::log10( value );
+            if ( value > 0 ) metricsValues[j] = std::log10( value );
+            ++j;
             value = percentiles[3];
-            if ( value > 0 ) metricsValues[10] = std::log10( value );
+            if ( value > 0 ) metricsValues[j] = std::log10( value );
+            ++j;
             value = percentiles[4];
-            if ( value > 0 ) metricsValues[11] = std::log10( value );
+            if ( value > 0 ) metricsValues[j] = std::log10( value );
+            ++j;
             
             // Direction percentiles
             percentiles = this->directionQuantiles();
             value = -percentiles[0];
-            if ( value > 0 ) metricsValues[12] = std::log10( value );
+            if ( value > 0 ) metricsValues[j] = std::log10( value );
+            ++j;
 
             value = percentiles[4];
-            if ( value > 0 ) metricsValues[13] = std::log10( value );
+            if ( value > 0 ) metricsValues[j] = std::log10( value );
+            ++j;
 
             // Speed x Acceleration percentiles
             std::vector<double> values = this->speedXaccelerationValues();
             percentiles = findQuantiles( values );
             value = -percentiles[0];
-            if ( value > 0 ) metricsValues[14] = std::log10( value );
+            if ( value > 0 ) metricsValues[j] = std::log10( value );
+            ++j;
             value = -percentiles[1];
-            if ( value > 0 ) metricsValues[15] = std::log10( value );
+            if ( value > 0 ) metricsValues[j] = std::log10( value );
+            ++j;
             value = percentiles[3];
-            if ( value > 0 ) metricsValues[16] = std::log10( value );
+            if ( value > 0 ) metricsValues[j] = std::log10( value );
+            ++j;
             value = percentiles[4];
-            if ( value > 0 ) metricsValues[17] = std::log10( value );
+            if ( value > 0 ) metricsValues[j] = std::log10( value );
+            ++j;
             
             // Total turns
             double totalDirectionChange = this->totalDirectionChange();
-            metricsValues[18] = std::log10( 0.001 + totalDirectionChange );
+            metricsValues[j++] = std::log10( 0.001 + totalDirectionChange );
             
             // The rolling FFT transformations.
             std::valarray< double > fft = this->rollingFFT( 11 );
             if ( fft.size() > 0 )
-                for (size_t i = 0; i < 5; ++i ) metricsValues[19 + i] = fft[i];
+                for (size_t i = 0; i < 5; ++i ) metricsValues[j + i] = fft[i];
+            j += 5;
             std::valarray< double > fftd = this->rollingFFT_direction( 11 );
             if ( fftd.size() > 0 )
-                for (size_t i = 0; i < 5; ++i ) metricsValues[24 + i] = fftd[i];
+                for (size_t i = 0; i < 5; ++i ) metricsValues[j + i] = fftd[i];
+            j += 5;
         }
     }
     
