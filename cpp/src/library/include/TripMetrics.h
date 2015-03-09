@@ -29,7 +29,7 @@ public:
     inline const std::vector<double>& values() const { return m_values; }
     
     // Returns a vector of the metric descriptions
-    const std::vector< std::string >& descriptions() const;
+    static const std::vector< std::string >& descriptions();
     
     // Returns the number of binary metrics (which appear in the beginning)
     static long numberOfBinaryMetrics();
