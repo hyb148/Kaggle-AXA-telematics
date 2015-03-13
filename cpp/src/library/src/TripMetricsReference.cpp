@@ -225,7 +225,8 @@ TripMetricsReference::scoreMetrics( const TripMetrics& input ) const
         }
     }
     
-    if ( nanFound ) { // use the metrics histograms for scoring
+        //    if ( nanFound ) { // use the metrics histograms for scoring
+    if ( true ) { // use the metrics histograms for scoring
         for ( size_t i = 0; i < nSize; ++i ) {
             const double prob = m_histograms[i]->probability( values[i] );
             result.push_back( prob );
