@@ -7,13 +7,13 @@ static const double pi = std::atan( 1.0 ) * 4;
 
 
 Trip::Trip( int tripId):
-  m_tripId( tripId ),
-  m_rawData(),
-  m_segments(),
-  m_segmentsGenerated( false ),
-  m_extraTravelDuration(0),
-  m_extraTravelLength(0),
-  m_distanceOfEndPoint(0)
+m_tripId( tripId ),
+m_rawData(),
+m_segments(),
+m_segmentsGenerated( false ),
+m_extraTravelDuration(0),
+m_extraTravelLength(0),
+m_distanceOfEndPoint(0)
 {
 }
 
@@ -30,7 +30,7 @@ Trip::setTripData( const std::vector< std::pair<float,float> >& data )
     m_rawData = data;
     if ( m_segmentsGenerated ) {
         for ( std::vector< Segment* >::iterator i = m_segments.begin();
-	      i != m_segments.end(); ++i )
+             i != m_segments.end(); ++i )
             delete *i;
         m_segments.clear();
         m_segmentsGenerated = false;
@@ -70,7 +70,7 @@ Trip::metrics() const
     
     size_t j = 0;
     
-    // Check if this is a zero segment trip
+        // Check if this is a zero segment trip
     if ( m_segments.size() == 0 ) {
         metricsValues[j++] = 1;
     }
@@ -86,16 +86,16 @@ Trip::metrics() const
             double tripLength = this->travelLength();
             metricsValues[j++] = std::log10( 1 + tripLength );
             
-            // Trip length to distance
+                // Trip length to distance
             double distanceToTravel = m_distanceOfEndPoint / tripLength;
             metricsValues[j++] = distanceToTravel;
             
-            // Speed percentiles
+                // Speed percentiles
             std::vector<double> percentiles = this->speedQuantiles();
             for (size_t i = 1; i <= 4; ++i )
                 metricsValues[j++] = std::log10( 0.1 + percentiles[i] );
             
-            // Acceleration percentiles
+                // Acceleration percentiles
             percentiles = this->accelerationQuantiles();
             double value = -percentiles[0];
             if ( value > 0 ) metricsValues[j] = std::log10( value );
@@ -110,17 +110,17 @@ Trip::metrics() const
             if ( value > 0 ) metricsValues[j] = std::log10( value );
             ++j;
             
-            // Direction percentiles
+                // Direction percentiles
             percentiles = this->directionQuantiles();
             value = -percentiles[0];
             if ( value > 0 ) metricsValues[j] = std::log10( value );
             ++j;
-
+            
             value = percentiles[4];
             if ( value > 0 ) metricsValues[j] = std::log10( value );
             ++j;
-
-            // Speed x Acceleration percentiles
+            
+                // Speed x Acceleration percentiles
             std::vector<double> values = this->speedXaccelerationValues();
             percentiles = findQuantiles( values );
             value = -percentiles[0];
@@ -136,24 +136,27 @@ Trip::metrics() const
             if ( value > 0 ) metricsValues[j] = std::log10( value );
             ++j;
             
-            // Total turns
+                // Total turns
             double totalDirectionChange = this->totalDirectionChange();
             metricsValues[j++] = std::log10( 0.001 + totalDirectionChange );
             
-            // The rolling FFT transformations.
+            
+                // The rolling FFT transformations.
             std::valarray< double > fft = this->rollingFFT( 11 );
             if ( fft.size() > 0 )
                 for (size_t i = 0; i < 5; ++i ) metricsValues[j + i] = fft[i];
-            j += 5;
-            std::valarray< double > fftd = this->rollingFFT_direction( 11 );
-            if ( fftd.size() > 0 )
-                for (size_t i = 0; i < 5; ++i ) metricsValues[j + i] = fftd[i];
-            j += 5;
+            /*
+             j += 5;
+             std::valarray< double > fftd = this->rollingFFT_direction( 11 );
+             if ( fftd.size() > 0 )
+             for (size_t i = 0; i < 5; ++i ) metricsValues[j + i] = fftd[i];
+             j += 5;
+             */
         }
     }
     
     return TripMetrics( m_tripId,
-                        metricsValues );
+                       metricsValues );
 }
 
 
@@ -208,16 +211,16 @@ Trip::speedValues() const
     const_cast<Trip&>(*this).generateSegments();
     std::vector<double> speedValues;
     speedValues.reserve( m_rawData.size() - 1 );
-
+    
     for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
-	  iSegment != m_segments.end(); ++iSegment ) {
-	std::vector<double> segmentValues = (*iSegment)->speedValues();
-	for ( std::vector<double>::const_iterator iValue = segmentValues.begin();
-	      iValue != segmentValues.end(); ++iValue )
-	    speedValues.push_back( *iValue );
+         iSegment != m_segments.end(); ++iSegment ) {
+        std::vector<double> segmentValues = (*iSegment)->speedValues();
+        for ( std::vector<double>::const_iterator iValue = segmentValues.begin();
+             iValue != segmentValues.end(); ++iValue )
+            speedValues.push_back( *iValue );
     }
-
-    speedValues.shrink_to_fit();    
+    
+    speedValues.shrink_to_fit();
     return speedValues;
 }
 
@@ -228,13 +231,13 @@ Trip::accelerationValues() const
     const_cast<Trip&>(*this).generateSegments();
     std::vector<double> accelerationValues;
     accelerationValues.reserve( m_rawData.size() - 2 );
-
+    
     for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
-	  iSegment != m_segments.end(); ++iSegment ) {
-	std::vector<double> segmentValues = (*iSegment)->accelerationValues();
-	for ( std::vector<double>::const_iterator iValue = segmentValues.begin();
-	      iValue != segmentValues.end(); ++iValue )
-	    accelerationValues.push_back( *iValue );
+         iSegment != m_segments.end(); ++iSegment ) {
+        std::vector<double> segmentValues = (*iSegment)->accelerationValues();
+        for ( std::vector<double>::const_iterator iValue = segmentValues.begin();
+             iValue != segmentValues.end(); ++iValue )
+            accelerationValues.push_back( *iValue );
     }
     
     accelerationValues.shrink_to_fit();
@@ -267,15 +270,15 @@ Trip::directionValues() const
     const_cast<Trip&>(*this).generateSegments();
     std::vector<double> directionValues;
     directionValues.reserve( m_rawData.size() - 2 );
-
+    
     for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
-	  iSegment != m_segments.end(); ++iSegment ) {
-	std::vector<double> segmentValues = (*iSegment)->angularValues();
-	for ( std::vector<double>::const_iterator iValue = segmentValues.begin();
-	      iValue != segmentValues.end(); ++iValue )
-	    directionValues.push_back( *iValue );
+         iSegment != m_segments.end(); ++iSegment ) {
+        std::vector<double> segmentValues = (*iSegment)->angularValues();
+        for ( std::vector<double>::const_iterator iValue = segmentValues.begin();
+             iValue != segmentValues.end(); ++iValue )
+            directionValues.push_back( *iValue );
     }
-
+    
     directionValues.shrink_to_fit();
     return directionValues;
 }
@@ -288,17 +291,17 @@ Trip::speedAccelerationDirectionValues() const
     const_cast<Trip&>(*this).generateSegments();
     std::vector< std::tuple<double,double,double> > speedAccelerationDirectionValues;
     speedAccelerationDirectionValues.reserve( m_rawData.size() - 2 );
-
+    
     for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
-	  iSegment != m_segments.end(); ++iSegment ) {
+         iSegment != m_segments.end(); ++iSegment ) {
         std::vector< std::tuple<double,double,double> > segmentValues = (*iSegment)->speedAccelerationDirectionValues();
         for ( std::vector< std::tuple<double,double,double> >::const_iterator iValue = segmentValues.begin();
-	      iValue != segmentValues.end(); ++iValue )
+             iValue != segmentValues.end(); ++iValue )
             speedAccelerationDirectionValues.push_back( *iValue );
     }
-
+    
     return speedAccelerationDirectionValues;
-
+    
 }
 
 
@@ -323,36 +326,36 @@ Trip&
 Trip::generateSegments()
 {
     if ( m_segmentsGenerated ) return *this;
-
+    
     m_extraTravelDuration = 0;
     m_extraTravelLength = 0;
     
-    // First pass: correcting for missing segment paths
-    // Look for single long jumps
-    // Estimate the mean speed and add points along the line
-    // Correct for jitter replacing the values of the data
+        // First pass: correcting for missing segment paths
+        // Look for single long jumps
+        // Estimate the mean speed and add points along the line
+        // Correct for jitter replacing the values of the data
     
     std::vector< std::pair< float, float > > rawData = m_rawData;
     
     std::vector< std::vector< std::pair< float, float > > > segmentsFirstPass;
     this->removeZeroSpeedSegments( rawData, segmentsFirstPass );
-
-    // Second pass: identify zero velocity points.
-    // Remove first and last zero speed points from the trip.
+    
+        // Second pass: identify zero velocity points.
+        // Remove first and last zero speed points from the trip.
     std::vector< std::vector< std::pair< float, float > > > segmentsSecondPass;
     for ( std::vector< std::vector< std::pair< float, float > > >::const_iterator iSegment = segmentsFirstPass.begin();
          iSegment != segmentsFirstPass.end(); ++iSegment )
         this->identifyGapsCorrectJitter( *iSegment, segmentsSecondPass );
     segmentsFirstPass.clear();
-
-    // Third pass: Remove angular jitter.
+    
+        // Third pass: Remove angular jitter.
     std::vector< std::vector< std::pair< float, float > > > segmentsThirdPass;
     for ( std::vector< std::vector< std::pair< float, float > > >::const_iterator iSegment = segmentsSecondPass.begin();
          iSegment != segmentsSecondPass.end(); ++iSegment )
         this->removeAccuteAngleSegments( *iSegment, segmentsThirdPass );
     segmentsSecondPass.clear();
-
-    // Fourth pass: Treat the gap and the jitters again
+    
+        // Fourth pass: Treat the gap and the jitters again
     std::vector< std::vector< std::pair< float, float > > > segmentsFourthPass;
     for ( std::vector< std::vector< std::pair< float, float > > >::const_iterator iSegment = segmentsThirdPass.begin();
          iSegment != segmentsThirdPass.end(); ++iSegment )
@@ -360,7 +363,7 @@ Trip::generateSegments()
     segmentsThirdPass.clear();
     
     
-    // Now create the segment objects;
+        // Now create the segment objects;
     for ( std::vector< std::vector< std::pair< float, float > > >::const_iterator iSegment = segmentsFourthPass.begin();
          iSegment != segmentsFourthPass.end(); ++iSegment )
         m_segments.push_back( new Segment( *iSegment ) );
@@ -375,7 +378,7 @@ Trip::generateSegments()
 
 Trip&
 Trip::identifyGapsCorrectJitter( const std::vector< std::pair< float, float > >& tripData,
-				 std::vector< std::vector< std::pair< float, float > > >& segments )
+                                std::vector< std::vector< std::pair< float, float > > >& segments )
 {
     const double maxAcceleration = 5; // The maximum acceleration allowed in a segment
     const double speedToTrigger = 10; // combined with a jump of 35 metres
@@ -388,80 +391,80 @@ Trip::identifyGapsCorrectJitter( const std::vector< std::pair< float, float > >&
     while ( i < tripData.size() ) {
         std::pair<float,float> p_current = tripData[i];
         double v_current = magnitude( p_current - p_previous );
-
-        // Check for abrupt high speed and high acceleration in combination with no low speed.
+        
+            // Check for abrupt high speed and high acceleration in combination with no low speed.
         if ( ( std::abs( v_current - v_previous ) > maxAcceleration ) &&  v_current > speedToTrigger ) {
-
-	    // Signal the end of the previous segment.
-	    size_t nDiff = i - segmentStartingIndex;
-	    if ( nDiff > 1 ) {
-		std::vector< std::pair< float, float > > segment( tripData.begin() + segmentStartingIndex, tripData.begin() + i );
-		segments.push_back( segment );
-	    }
-	    else {
-		// Correct duration and length of trip for the skipped mini-segment.
-		if ( i < tripData.size() - 1 ) {
-		    std::pair<float,float> p_next = tripData[i];
-		    double v_next = magnitude( p_next - p_current );
-		    if ( std::abs( v_current - v_previous ) < maxAcceleration ) {
-			m_extraTravelDuration += 1;
-			m_extraTravelLength += magnitude( p_next - p_previous );
-		    }
-		}
-	    }
-
-	    // Check whether this is a jitter or a gap and adjust the starting index accordingly, as well as the correction to the travel length and time.
-	    if ( i < tripData.size() - 1 ) {
-		
-		std::pair<float,float> p_next = tripData[i+1];
-		double v_next = magnitude( p_next - p_current );
-		if ( std::abs( v_current - v_next ) > maxAcceleration ) { // This is a gap
-		    double averageSpeedInGap = 0.5 * ( v_next + v_previous );
-		    double distanceSpentInGap = magnitude( p_current - p_previous );
-		    m_extraTravelLength += distanceSpentInGap;
-		    m_extraTravelDuration += static_cast<int>( std::nearbyint( distanceSpentInGap / averageSpeedInGap ) );
-		    segmentStartingIndex = i;
-		    ++i;
-		    p_current = p_next;
-		    v_current = v_next;
-		}
-		else { // This is a jitter. Check whether we have a sequence of spikes and skip them.
-		    size_t j = i + 2;
-		    bool endOfSpikesFound = false;
-		    while ( j < tripData.size() - 1 ) {
-			std::pair<float,float> p_nnext = tripData[j];
-			double v_nnext = magnitude( p_next - p_nnext );
-			std::pair<float,float> p_nnnext = tripData[j+1];
-			double v_nnnext = magnitude( p_nnnext - p_nnext );
-			
-			if ( std::abs( v_nnnext - v_nnext ) < maxAcceleration ) { // End of spikes.
-			    double averageSpeedInGap = 0.5 * ( v_nnext + v_previous );
-			    double distanceSpentInGap = magnitude( p_next - p_previous );
-			    m_extraTravelLength += distanceSpentInGap;
-			    m_extraTravelDuration += static_cast<int>( std::nearbyint( distanceSpentInGap / averageSpeedInGap ) );
-			    i = j;
-			    segmentStartingIndex = i-1;
-			    p_current = p_next;
-			    v_current = averageSpeedInGap;
-			    endOfSpikesFound = true;
-			    break;
-			}
-			++j;
-			p_next = p_nnext;
-		    }
-		    if ( ! endOfSpikesFound ) {
-			i = j;
-			segmentStartingIndex = i;
-		    }
-		}
-	    }
+            
+                // Signal the end of the previous segment.
+            size_t nDiff = i - segmentStartingIndex;
+            if ( nDiff > 1 ) {
+                std::vector< std::pair< float, float > > segment( tripData.begin() + segmentStartingIndex, tripData.begin() + i );
+                segments.push_back( segment );
+            }
+            else {
+                    // Correct duration and length of trip for the skipped mini-segment.
+                if ( i < tripData.size() - 1 ) {
+                    std::pair<float,float> p_next = tripData[i];
+                    double v_next = magnitude( p_next - p_current );
+                    if ( std::abs( v_current - v_next ) < maxAcceleration ) {
+                        m_extraTravelDuration += 1;
+                        m_extraTravelLength += magnitude( p_next - p_previous );
+                    }
+                }
+            }
+            
+                // Check whether this is a jitter or a gap and adjust the starting index accordingly, as well as the correction to the travel length and time.
+            if ( i < tripData.size() - 1 ) {
+                
+                std::pair<float,float> p_next = tripData[i+1];
+                double v_next = magnitude( p_next - p_current );
+                if ( std::abs( v_current - v_next ) > maxAcceleration ) { // This is a gap
+                    double averageSpeedInGap = 0.5 * ( v_next + v_previous );
+                    double distanceSpentInGap = magnitude( p_current - p_previous );
+                    m_extraTravelLength += distanceSpentInGap;
+                    m_extraTravelDuration += static_cast<int>( std::nearbyint( distanceSpentInGap / averageSpeedInGap ) );
+                    segmentStartingIndex = i;
+                    ++i;
+                    p_current = p_next;
+                    v_current = v_next;
+                }
+                else { // This is a jitter. Check whether we have a sequence of spikes and skip them.
+                    size_t j = i + 2;
+                    bool endOfSpikesFound = false;
+                    while ( j < tripData.size() - 1 ) {
+                        std::pair<float,float> p_nnext = tripData[j];
+                        double v_nnext = magnitude( p_next - p_nnext );
+                        std::pair<float,float> p_nnnext = tripData[j+1];
+                        double v_nnnext = magnitude( p_nnnext - p_nnext );
+                        
+                        if ( std::abs( v_nnnext - v_nnext ) < maxAcceleration ) { // End of spikes.
+                            double averageSpeedInGap = 0.5 * ( v_nnext + v_previous );
+                            double distanceSpentInGap = magnitude( p_next - p_previous );
+                            m_extraTravelLength += distanceSpentInGap;
+                            m_extraTravelDuration += static_cast<int>( std::nearbyint( distanceSpentInGap / averageSpeedInGap ) );
+                            i = j;
+                            segmentStartingIndex = i-1;
+                            p_current = p_next;
+                            v_current = averageSpeedInGap;
+                            endOfSpikesFound = true;
+                            break;
+                        }
+                        ++j;
+                        p_next = p_nnext;
+                    }
+                    if ( ! endOfSpikesFound ) {
+                        i = j;
+                        segmentStartingIndex = i;
+                    }
+                }
+            }
         }
-
+        
         p_previous = p_current;
         v_previous = v_current;
         ++i;
     }
-
+    
     
     if ( tripData.size() - segmentStartingIndex > 2 ) {
         std::vector< std::pair< float, float > > segment( tripData.begin()+segmentStartingIndex, tripData.end() );
@@ -475,7 +478,7 @@ Trip::identifyGapsCorrectJitter( const std::vector< std::pair< float, float > >&
 
 static double
 angleAmongVectors( const std::pair<float,float>& v1,
-		   const std::pair<float,float>& v2 )
+                  const std::pair<float,float>& v2 )
 {
     const double pi = std::atan( 1.0 ) * 4;
     double mv1 = std::sqrt( std::pow(v1.first,2) + std::pow(v1.second, 2) );
@@ -488,57 +491,57 @@ angleAmongVectors( const std::pair<float,float>& v1,
     if ( sint > 1 ) sint = 1;
     if ( sint < -1 ) sint = -1;
     if (cost >= 0  )
-	return std::asin( sint );
+        return std::asin( sint );
     else {
-	if (sint > 0 )
+        if (sint > 0 )
             return pi - std::asin( sint );
-	else {
-	    if ( cost > 1 ) cost = 1;
-	    if ( cost < -1 ) cost = -1;
-	    return - std::acos( cost );
-	}
+        else {
+            if ( cost > 1 ) cost = 1;
+            if ( cost < -1 ) cost = -1;
+            return - std::acos( cost );
+        }
     }
 }
 
 
 Trip&
 Trip::removeAccuteAngleSegments( const std::vector< std::pair< float, float > >& tripData,
-				 std::vector< std::vector< std::pair< float, float > > >& segments )
+                                std::vector< std::vector< std::pair< float, float > > >& segments )
 {
     const double maxAngle = 100 * pi / 180.0; // 100 degrees turn in a second!
-
+    
     size_t segentStartingIndex = 0;
-
+    
     std::pair<float, float> v_previous = tripData[1]-tripData[0];
     size_t i = 2;
     while ( i < tripData.size() ) {
-	std::pair<float, float> v_current = tripData[i] - tripData[i-1];
-	double angle = angleAmongVectors( v_current, v_previous );
-	
+        std::pair<float, float> v_current = tripData[i] - tripData[i-1];
+        double angle = angleAmongVectors( v_current, v_previous );
+        
         if ( std::abs( angle ) > maxAngle ) {
-	    if ( i - segentStartingIndex > 2 ) {
-		std::vector< std::pair< float, float > > segment( tripData.begin() + segentStartingIndex, tripData.begin() + i - 1 );
-		segments.push_back( segment );
-	    }
-	    
-	    m_extraTravelDuration += 2;
-	    m_extraTravelLength += magnitude(tripData[i-2] - tripData[i]);
-	    
+            if ( i - segentStartingIndex > 2 ) {
+                std::vector< std::pair< float, float > > segment( tripData.begin() + segentStartingIndex, tripData.begin() + i - 1 );
+                segments.push_back( segment );
+            }
+            
+            m_extraTravelDuration += 2;
+            m_extraTravelLength += magnitude(tripData[i-2] - tripData[i]);
+            
             segentStartingIndex = i;
-	    i += 2;
-	    if ( i - 1 < tripData.size() )
-		v_previous = tripData[i-1] - tripData[i-2];
-	    continue;
+            i += 2;
+            if ( i - 1 < tripData.size() )
+                v_previous = tripData[i-1] - tripData[i-2];
+            continue;
         }
         v_previous = v_current;
-	++i;
+        ++i;
     }
     
     if ( tripData.size() - segentStartingIndex > 2 ) {
         std::vector< std::pair< float, float > > segment( tripData.begin()+segentStartingIndex, tripData.end() );
         segments.push_back( segment );
     }
-
+    
     return *this;
 }
 
@@ -546,7 +549,7 @@ Trip::removeAccuteAngleSegments( const std::vector< std::pair< float, float > >&
 
 Trip&
 Trip::removeZeroSpeedSegments( const std::vector< std::pair< float, float > >& tripData,
-			       std::vector< std::vector< std::pair< float, float > > >& segments )
+                              std::vector< std::vector< std::pair< float, float > > >& segments )
 {
     const double zeroSpeedTolerance = 1.5;
     
@@ -556,7 +559,7 @@ Trip::removeZeroSpeedSegments( const std::vector< std::pair< float, float > >& t
     for (size_t i = 1; i < tripData.size(); ++i ) {
         std::pair<float, float> p_current = tripData[i];
         double v_current = magnitude( p_current - p_previous );
-
+        
         if ( v_current < zeroSpeedTolerance ) {
             if ( zeroSpeedCounter == 0 ) { // Mark the end of a segment and beginning of a zero speed sequence
                 if ( i - segentStartingIndex > 1 ) {
@@ -577,7 +580,7 @@ Trip::removeZeroSpeedSegments( const std::vector< std::pair< float, float > >& t
         std::vector< std::pair< float, float > > segment( tripData.begin()+segentStartingIndex, tripData.end() );
         segments.push_back( segment );
     }
-
+    
     return *this;
 }
 
@@ -610,33 +613,33 @@ std::valarray< double >
 Trip::rollingFFT( long sampleSize ) const
 {
     const_cast<Trip&>(*this).generateSegments();
-
+    
     long numberOfTransformations = 0;
     long transformationSize = static_cast<long>( std::floor( (sampleSize - 1 ) / 2 ) ) + (sampleSize+1)%2;
-
+    
     std::valarray< double > result( 0.0, transformationSize );
-
-    // Loop over the segments
+    
+        // Loop over the segments
     for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
-	  iSegment != m_segments.end(); ++iSegment ) {
-
-	// Get the speed values
-	std::vector<double> segmentValues = (*iSegment)->speedValues();
-
-	size_t startingIndex = 0;
-	size_t endIndex = sampleSize;
-	while ( endIndex <= segmentValues.size() ) {
-	    std::vector<double> sample( segmentValues.begin() + startingIndex, segmentValues.begin() + endIndex );
-	    result += vfft( sample );
-	    ++startingIndex;
-	    ++endIndex;
-	    ++numberOfTransformations;
-	}
+         iSegment != m_segments.end(); ++iSegment ) {
+        
+            // Get the speed values
+        std::vector<double> segmentValues = (*iSegment)->speedValues();
+        
+        size_t startingIndex = 0;
+        size_t endIndex = sampleSize;
+        while ( endIndex <= segmentValues.size() ) {
+            std::vector<double> sample( segmentValues.begin() + startingIndex, segmentValues.begin() + endIndex );
+            result += vfft( sample );
+            ++startingIndex;
+            ++endIndex;
+            ++numberOfTransformations;
+        }
     }
-
+    
     if ( numberOfTransformations == 0 )  // Return an empty vector
-	return std::valarray< double >();
-
+        return std::valarray< double >();
+    
     for (size_t i = 0; i < result.size(); ++i ) result[i] /= numberOfTransformations;
     
     return result;
@@ -648,33 +651,33 @@ std::valarray< double >
 Trip::rollingFFT_direction( long sampleSize ) const
 {
     const_cast<Trip&>(*this).generateSegments();
-
+    
     long numberOfTransformations = 0;
     long transformationSize = static_cast<long>( std::floor( (sampleSize - 1 ) / 2 ) ) + (sampleSize+1)%2;
-
+    
     std::valarray< double > result( 0.0, transformationSize );
-
-    // Loop over the segments
+    
+        // Loop over the segments
     for ( std::vector< Segment* >::const_iterator iSegment = m_segments.begin();
-	  iSegment != m_segments.end(); ++iSegment ) {
-
-	// Get the speed values
-	std::vector<double> segmentValues = (*iSegment)->angularValues();
-
-	size_t startingIndex = 0;
-	size_t endIndex = sampleSize;
-	while ( endIndex <= segmentValues.size() ) {
-	    std::vector<double> sample( segmentValues.begin() + startingIndex, segmentValues.begin() + endIndex );
-	    result += std::log10( 1 + vfft( sample ) );
-	    ++startingIndex;
-	    ++endIndex;
-	    ++numberOfTransformations;
-	}
+         iSegment != m_segments.end(); ++iSegment ) {
+        
+            // Get the speed values
+        std::vector<double> segmentValues = (*iSegment)->angularValues();
+        
+        size_t startingIndex = 0;
+        size_t endIndex = sampleSize;
+        while ( endIndex <= segmentValues.size() ) {
+            std::vector<double> sample( segmentValues.begin() + startingIndex, segmentValues.begin() + endIndex );
+            result += std::log10( 1 + vfft( sample ) );
+            ++startingIndex;
+            ++endIndex;
+            ++numberOfTransformations;
+        }
     }
-
+    
     if ( numberOfTransformations == 0 )  // Return an empty vector
-	return std::valarray< double >();
-
+        return std::valarray< double >();
+    
     for (size_t i = 0; i < result.size(); ++i ) result[i] /= numberOfTransformations;
     
     return result;

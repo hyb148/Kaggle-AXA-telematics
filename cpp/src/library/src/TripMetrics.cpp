@@ -39,12 +39,12 @@ TripMetrics::descriptions()
         "fft_01",
         "fft_02",
         "fft_03",
-        "fft_04",
+        "fft_04"/*,
         "fftd_00",
         "fftd_01",
         "fftd_02",
         "fftd_03",
-        "fftd_04"
+        "fftd_04"*/
     };
     return descriptions;
 }
