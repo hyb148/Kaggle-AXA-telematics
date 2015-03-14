@@ -1,9 +1,7 @@
 import os
-import os.path
 import numpy
 import pandas
 import multiprocessing
-from queue import Empty
 
 from .Driver import Driver
 from .ProcessLogger import ProcessLogger
@@ -58,7 +56,7 @@ class DriverData:
 
 
     # Loads the speed statistics data per driver
-    def loadSpeedStatisticsData( self, numberOfThreads = 7 ):
+    def loadAttributes( self, numberOfThreads = 7 ):
         
         # Put the driver directories in a queue
         ctx = multiprocessing.get_context('fork')
@@ -76,10 +74,13 @@ class DriverData:
             while True:
                 driver = inputQueue.get()
                 driver.readTripsFromDirectory( self.__dir )
-                speedStatistics = driver.speedStatistics()
-                accelerationStatistics = driver.accelerationStatistics()
-                angularStatistics = driver.angularStatistics()
-                outputQueue.put(numpy.hstack((driver.id(), driver.numberOfTrips(), driver.zeroSegmentTrips(), speedStatistics, accelerationStatistics, angularStatistics)))
+                numberOfTrips = driver.numberOfTrips()
+                tripData = []
+                for i in range(numberOfTrips):
+                    trip = driver.getTrip( i + 1 )
+                    values, labels = trip.attributes()
+                    tripData.append( ( trip.id(), values, labels ) )
+                outputQueue.put( (driver.id(), tripData ) )
             return
 
         # Start the reading threads
@@ -91,19 +92,27 @@ class DriverData:
             thread.start()
             threads.append( thread )
 
-        drivers = numpy.zeros([numberOfDriversToProcess, 33])
-        log = ProcessLogger( numberOfDriversToProcess )
+        # Set up the logger
+        log = ProcessLogger( numberOfDriversToProcess, "Drivers processed : " )
+        outputData = []
+        labels = []
         for i in range( numberOfDriversToProcess ):
-            drivers[i] = driversOutQueue.get()
+            driverId, tripData = driversOutQueue.get()
+            # Loop over the trips for this driver
+            for trip in tripData:
+                if len(labels) == 0: # This is the first entry. Retrieve the header.
+                    labels.append( 'driverId' )
+                    labels.append( 'tripId' )
+                    for label in trip[2]:
+                        labels.append(label)
+                    outputData = numpy.array([]).reshape(0,len(labels))
+                tripId = trip[0]
+                attributes = trip[1]
+                tripRow = numpy.hstack( (driverId, tripId, attributes) )
+                outputData = numpy.vstack( (outputData, tripRow) )
             log.taskEnded()
 
         for t in threads:
             t.terminate()
 
-        columns=('id','ntrips','nosegs',
-                 'sm05','ss05','sm25','ss25','sm50','ss50','sm75','ss75','sm95','ss95',
-                 'am05','as05','am25','as25','am50','as50','am75','as75','am95','as95',
-                 'tm05','ts05','tm25','ts25','tm50','ts50','tm75','ts75','tm95','ts95')
-        return pandas.DataFrame(drivers, columns=columns)
-        
-    
+        return pandas.DataFrame(outputData, columns=labels)

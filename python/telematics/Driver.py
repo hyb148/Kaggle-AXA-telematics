@@ -1,6 +1,4 @@
-import os
 import os.path
-import numpy
 import pickle
 from .Trip import Trip
 
@@ -36,13 +34,13 @@ class Driver:
             (tripId, tripData) = pickle.load( file )
             trip = Trip(tripId)
             trip.setData( tripData )
+            if len(trip.segments()) == 0:
+                self.__zeroSegmentTrips += 1
             self.__trips[tripId] = trip
         file.close()
         return
 
-    def numberOfTrips( self ):
-        return len(self.__trips)
-
+    # Returns the trip object given a trip id
     def getTrip( self, tripId ):
         return self.__trips[ tripId ]
 
@@ -53,44 +51,3 @@ class Driver:
     # Returns the total number of trips
     def numberOfTrips( self ):
         return len( self.__trips )
-
-    # Collects the speed statistics
-    def speedStatistics( self ):
-        quantiles = numpy.zeros([(self.numberOfTrips() - self.zeroSegmentTrips() ), 5] )
-        j = 0
-        for i in self.__trips:
-            trip = self.__trips[i]
-            if trip.numberOfSegments() == 0:
-                continue
-            else:
-                quantiles[j] = trip.speedStatistics()
-                j += 1        
-        return numpy.array([( numpy.mean( quantiles[:,k]), numpy.std( quantiles[:,k]) ) for k in range(5)]).reshape(10)
-
-    # Collects the acceleration statistics
-    def accelerationStatistics( self ):
-        quantiles = numpy.zeros([(self.numberOfTrips() - self.zeroSegmentTrips() ), 5] )
-        j = 0
-        for i in self.__trips:
-            trip = self.__trips[i]
-            if trip.numberOfSegments() == 0:
-                continue
-            else:
-                quantiles[j] = trip.accelerationStatistics()
-                j += 1        
-        return numpy.array([( numpy.mean( quantiles[:,k]), numpy.std( quantiles[:,k]) ) for k in range(5)]).reshape(10)
-
-    # Collects the acceleration statistics
-    def angularStatistics( self ):
-        quantiles = numpy.zeros([(self.numberOfTrips() - self.zeroSegmentTrips() ), 5] )
-        j = 0
-        for i in self.__trips:
-            trip = self.__trips[i]
-            if trip.numberOfSegments() == 0:
-                continue
-            else:
-                quantiles[j] = trip.angularStatistics()
-                j += 1        
-        return numpy.array([( numpy.mean( quantiles[:,k]), numpy.std( quantiles[:,k]) ) for k in range(5)]).reshape(10)
-
-    
